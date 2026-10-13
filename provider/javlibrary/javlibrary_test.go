@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -68,13 +69,13 @@ func TestParseDetailMetadata(t *testing.T) {
 }
 
 func TestGetMovieInfoByIDResolvesNumberThroughSearch(t *testing.T) {
-	var detailCount int
+	var detailCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("keyword") != "" {
 			_, _ = w.Write([]byte(searchHTML))
 			return
 		}
-		detailCount++
+		detailCount.Add(1)
 		_, _ = w.Write([]byte(detailHTML))
 	}))
 	defer server.Close()
@@ -83,8 +84,8 @@ func TestGetMovieInfoByIDResolvesNumberThroughSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Number != "SSIS-001" || info.ID != "javliAB12" || detailCount != 1 {
-		t.Fatalf("wrong search/detail routing: %+v detailCount=%d", info, detailCount)
+	if info.Number != "SSIS-001" || info.ID != "javliAB12" || detailCount.Load() != 1 {
+		t.Fatalf("wrong search/detail routing: %+v detailCount=%d", info, detailCount.Load())
 	}
 }
 
