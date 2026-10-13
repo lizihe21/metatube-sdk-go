@@ -94,7 +94,7 @@ func parseSearch(doc *goquery.Document, pageURL string) ([]*model.MovieSearchRes
 	doc.Find(".movie-list .item").Each(func(_ int, item *goquery.Selection) {
 		href := item.AttrOr("href", "")
 		if href == "" {
-			href = item.Find("a[href]").First().AttrOr("href", "")
+			href = item.Find("a[href*='/v/']").First().AttrOr("href", "")
 		}
 		if href == "" {
 			href = item.Closest("a[href]").AttrOr("href", "")
