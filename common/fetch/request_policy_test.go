@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -11,10 +12,10 @@ import (
 )
 
 func TestPolicyRetryBudgetDoesNotMultiplyWithRetryableHTTP(t *testing.T) {
-	var requests int
+	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
-		if requests == 1 {
+		requests.Add(1)
+		if requests.Load() == 1 {
 			http.Error(w, "transient", http.StatusServiceUnavailable)
 			return
 		}
@@ -31,15 +32,15 @@ func TestPolicyRetryBudgetDoesNotMultiplyWithRetryableHTTP(t *testing.T) {
 	response, err := fetcher.Get(server.URL)
 	if err != nil { t.Fatal(err) }
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK || requests != 2 {
-		t.Fatalf("status=%d requests=%d", response.StatusCode, requests)
+	if response.StatusCode != http.StatusOK || requests.Load() != 2 {
+		t.Fatalf("status=%d requests=%d", response.StatusCode, requests.Load())
 	}
 }
 
 func TestPolicyDisablesLegacyAutomaticRetry(t *testing.T) {
-	var requests int
+	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requests++
+		requests.Add(1)
 		http.Error(w, "busy", http.StatusServiceUnavailable)
 	}))
 	defer server.Close()
@@ -50,5 +51,5 @@ func TestPolicyDisablesLegacyAutomaticRetry(t *testing.T) {
 	}); err != nil { t.Fatal(err) }
 	_, err := fetcher.Get(server.URL)
 	if err == nil { t.Fatal("expected status error") }
-	if requests != 1 { t.Fatalf("expected exactly one request, got %d", requests) }
+	if requests.Load() != 1 { t.Fatalf("expected exactly one request, got %d", requests) }
 }
