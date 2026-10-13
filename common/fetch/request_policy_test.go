@@ -51,5 +51,5 @@ func TestPolicyDisablesLegacyAutomaticRetry(t *testing.T) {
 	}); err != nil { t.Fatal(err) }
 	_, err := fetcher.Get(server.URL)
 	if err == nil { t.Fatal("expected status error") }
-	if requests.Load() != 1 { t.Fatalf("expected exactly one request, got %d", requests) }
+	if requests.Load() != 1 { t.Fatalf("expected exactly one request, got %d", requests.Load()) }
 }
