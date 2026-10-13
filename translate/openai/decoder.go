@@ -15,7 +15,12 @@ func decodeResponse(body io.Reader, contentType, mode string) (string, error) {
 	mimeType, _, _ := mime.ParseMediaType(contentType)
 	peek, _ := reader.Peek(32)
 	trimmed := bytes.TrimSpace(peek)
-	if mimeType == "text/event-stream" || bytes.HasPrefix(trimmed, []byte("data:")) || bytes.HasPrefix(trimmed, []byte("event:")) || bytes.HasPrefix(trimmed, []byte(":")) {
+	// Some compatible gateways send JSON while retaining the event-stream
+	// MIME type (or SSE while reporting application/json). Sniff the actual
+	// body before using the Content-Type as a fallback.
+	startsJSON := bytes.HasPrefix(trimmed, []byte("{")) || bytes.HasPrefix(trimmed, []byte("["))
+	if !startsJSON && (mimeType == "text/event-stream" || bytes.HasPrefix(trimmed, []byte("data:")) ||
+		bytes.HasPrefix(trimmed, []byte("event:")) || bytes.HasPrefix(trimmed, []byte(":"))) {
 		return decodeSSE(reader, mode)
 	}
 	data, err := io.ReadAll(reader)

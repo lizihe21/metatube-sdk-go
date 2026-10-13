@@ -342,3 +342,16 @@ func TestOfficialAPIEndpointCannotSendKeyOverHTTP(t *testing.T) {
 		t.Fatalf("insecure official API URL accepted: %v", err)
 	}
 }
+
+func TestIncorrectEventStreamMIMEWithJSONBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		io.WriteString(w, `{"choices":[{"index":0,"message":{"content":"Fallback JSON"},"finish_reason":"stop"}]}`)
+	}))
+	defer server.Close()
+	o := &OpenAI{APIUrl: server.URL, Model: "model", Stream: true}
+	got, err := o.Translate("hi", "en", "de")
+	if err != nil || got != "Fallback JSON" {
+		t.Fatalf("JSON body rejected because of incorrect header: %q %v", got, err)
+	}
+}
