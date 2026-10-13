@@ -177,3 +177,12 @@ func TestBodyCloseReleasesConcurrencySlot(t *testing.T) {
 	}
 	_ = b.Body.Close()
 }
+
+func TestRejectsOversizedPolicyConfiguration(t *testing.T) {
+	for _, c := range []Config{{MaxConcurrency: 129}, {Jitter: 25 * time.Hour}, {MinInterval: 25 * time.Hour}} {
+		_, err := New(c)
+		if !errors.Is(err, ErrInvalidConfig) {
+			t.Fatalf("accepted unsafe config: %+v (%v)", c, err)
+		}
+	}
+}
