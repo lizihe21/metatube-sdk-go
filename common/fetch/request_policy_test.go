@@ -1,6 +1,8 @@
 package fetch
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -52,4 +54,19 @@ func TestPolicyDisablesLegacyAutomaticRetry(t *testing.T) {
 	_, err := fetcher.Get(server.URL)
 	if err == nil { t.Fatal("expected status error") }
 	if requests.Load() != 1 { t.Fatalf("expected exactly one request, got %d", requests.Load()) }
+}
+
+func TestGetContextPropagatesCancellation(t *testing.T) {
+	fetcher := Default(&Config{})
+	if err := fetcher.ConfigurePolicy(provider.RequestPolicyConfig{
+		Scope: "fetch-context-" + t.Name(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := fetcher.GetContext(ctx, "http://example.invalid/entry")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context canceled, got %v", err)
+	}
 }
