@@ -294,3 +294,43 @@ func TestResponsesSSEDoneSnapshotOnly(t *testing.T) {
 		t.Fatalf("%q %v", got, err)
 	}
 }
+
+func TestResponsesSnapshotRefusalOverridesEarlierPartialText(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		io.WriteString(w, "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"partial\"}\n\n")
+		io.WriteString(w, "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"refusal\",\"refusal\":\"declined\"}]}]}}\n\n")
+	}))
+	defer server.Close()
+	o := &OpenAI{APIUrl: server.URL, Model: "test", APIMode: "responses", Stream: true}
+	got, err := o.Translate("hi", "en", "fr")
+	if !errors.Is(err, ErrRefusal) || got != "" {
+		t.Fatalf("refusal must override partial: %q %v", got, err)
+	}
+}
+
+func TestChatSSERequiresEndMarkerEvenAfterStop(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		io.WriteString(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"partial\"},\"finish_reason\":\"stop\"}]}\n\n")
+	}))
+	defer server.Close()
+	o := &OpenAI{APIUrl: server.URL, Model: "mock", Stream: true}
+	_, err := o.Translate("hi", "en", "fr")
+	if !errors.Is(err, ErrIncomplete) {
+		t.Fatalf("stream without [DONE] accepted: %v", err)
+	}
+}
+
+func TestPartialContentHTTPStatusRejected(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPartialContent)
+		io.WriteString(w, `{"choices":[{"message":{"content":"partial"}}]}`)
+	}))
+	defer server.Close()
+	o := &OpenAI{APIUrl: server.URL, Model: "mock"}
+	_, err := o.Translate("hi", "en", "fr")
+	if !errors.Is(err, ErrUpstream) {
+		t.Fatalf("206 accepted: %v", err)
+	}
+}

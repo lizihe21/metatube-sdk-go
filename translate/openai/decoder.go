@@ -234,14 +234,20 @@ func decodeSSE(reader io.Reader, mode string) (string, error) {
 					if snapshot.Status != "" && snapshot.Status != "completed" {
 						return ErrIncomplete
 					}
-					// Completed snapshots can be omitted or contain no output.
-					// Never append a completed snapshot over already received deltas.
-					if out.Len() == 0 {
+					if len(snapshot.Error) > 0 && string(snapshot.Error) != "null" {
+						return ErrUpstream
+					}
+					// A completed snapshot can contain a refusal even if earlier
+					// deltas contained text. Check final content, but do not
+					// duplicate the snapshot after already receiving deltas.
+					if len(snapshot.Output) > 0 || snapshot.OutputText != "" {
 						full, err := decodeResponsesJSON(event.Response)
 						if err != nil {
 							return err
 						}
-						out.WriteString(full)
+						if out.Len() == 0 {
+							out.WriteString(full)
+						}
 					}
 				}
 			}
