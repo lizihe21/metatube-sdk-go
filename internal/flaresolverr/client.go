@@ -77,7 +77,7 @@ func New(endpoint string, timeout time.Duration, transport http.RoundTripper) (*
 		endpoint: u.String(),
 		timeout:  timeout,
 		httpClient: &http.Client{
-			Transport:     transport,
+			Transport: transport,
 			// Includes the separately budgeted site queue wait (up to 2*timeout),
 			// the remote solve (up to timeout), and network overhead.
 			Timeout:       3*timeout + 15*time.Second,
