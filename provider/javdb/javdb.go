@@ -25,6 +25,7 @@ var (
 	_ provider.MovieProvider = (*JavDB)(nil)
 	_ provider.MovieSearcher = (*JavDB)(nil)
 	_ provider.RequestPolicySetter = (*JavDB)(nil)
+	_ provider.ConfigSetter         = (*JavDB)(nil)
 	_ provider.ProxySetter = (*JavDB)(nil)
 	_ provider.RequestTimeoutSetter = (*JavDB)(nil)
 	_ provider.Fetcher = (*JavDB)(nil)
