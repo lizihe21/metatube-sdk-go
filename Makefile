@@ -130,3 +130,30 @@ lint:
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+
+# Offline validation is the default. Real sites and PostgreSQL Docker are
+# deliberately excluded unless their opt-in variables are set explicitly.
+.PHONY: test test-race test-vet test-live test-db
+
+test:
+	METATUBE_LIVE_TEST=0 METATUBE_DOCKER_TEST=0 OPENAI_TRANSLATION_INTEGRATION=0 go test ./...
+
+test-vet:
+	go vet ./...
+
+test-race:
+	METATUBE_LIVE_TEST=0 METATUBE_DOCKER_TEST=0 OPENAI_TRANSLATION_INTEGRATION=0 go test -race -count=2 \
+		./internal/requestpolicy ./internal/flaresolverr ./provider/internal/scraper \
+		./provider/internal/sitehtml ./provider/javlibrary ./provider/javdb \
+		./common/fetch ./translate/openai ./route ./engine
+
+# Usage: METATUBE_LIVE_TEST=1 go test -v ./provider/javbus -run '^TestJavBus_'
+#          (choose the provider being inspected, not the entire suite)
+test-live:
+	@test "$$METATUBE_LIVE_TEST" = "1" || (echo "Set METATUBE_LIVE_TEST=1 to allow real API/site requests"; exit 1)
+	@echo "Select one provider/package and run go test manually; see docs/test-matrix.md"
+
+test-db:
+	@test "$$METATUBE_DOCKER_TEST" = "1" || (echo "Set METATUBE_DOCKER_TEST=1 before requesting PostgreSQL tests"; exit 1)
+	go test -v ./engine/dbengine

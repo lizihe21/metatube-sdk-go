@@ -7,19 +7,23 @@ concurrency:
 on:
   push:
     branches:
-      - 'main'
+      - main
   pull_request:
 
-jobs:
-  go-test:
-    name: Go Test
-    runs-on: ubuntu-latest
-    services:
-      dind:
-        image: docker:dind-rootless
-        ports:
-          - 2375:2375
+permissions:
+  contents: read
 
+jobs:
+  offline-test:
+    name: Go 1.26 offline test and vet
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # These tests use network fixtures or httptest only; actual remote
+      # provider/API calls and Docker-backed PostgreSQL are explicit opt-ins.
+      METATUBE_LIVE_TEST: "0"
+      METATUBE_DOCKER_TEST: "0"
+      OPENAI_TRANSLATION_INTEGRATION: "0"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -28,14 +32,28 @@ jobs:
         uses: actions/setup-go@v6
         with:
           check-latest: true
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
+          cache: true
 
-      - name: Run test
-        run: |
-          go version
-          go test $(go list ./... | grep -Ev "github.com/metatube-community/metatube-sdk-go/translate")
+      - name: Verify Go version
+        run: go version
 
-      - name: OpenAI translation protocol contract tests
+      - name: Run all offline unit and fixture tests
+        run: go test ./...
+
+      - name: Run Go vet
+        run: go vet ./...
+
+      - name: Run race-sensitive offline suites
         run: |
-          # All cases use httptest; live API tests are separately opt-in.
-          go test -race ./translate/openai
+          go test -race -count=2 \
+            ./internal/requestpolicy \
+            ./internal/flaresolverr \
+            ./provider/internal/scraper \
+            ./provider/internal/sitehtml \
+            ./provider/javlibrary \
+            ./provider/javdb \
+            ./common/fetch \
+            ./translate/openai \
+            ./route \
+            ./engine
