@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"strings"
@@ -13,6 +14,12 @@ var ErrTranslator = &errorTranslator{errors.New("translate: unknown translator")
 
 type Translator interface {
 	Translate(text, from, to string) (string, error)
+}
+
+// ContextTranslator is an optional, cancellation-aware extension.
+// Existing translators continue to implement Translator unchanged.
+type ContextTranslator interface {
+	TranslateContext(ctx context.Context, text, from, to string) (string, error)
 }
 
 var (
