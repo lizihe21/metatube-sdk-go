@@ -14,4 +14,8 @@ var (
 	ErrImageNotFound      = errors.New(http.StatusNotFound, "image not found")
 	ErrProviderNotFound   = errors.New(http.StatusNotFound, "provider not found")
 	ErrIncompleteMetadata = errors.New(http.StatusInternalServerError, "incomplete metadata")
+	ErrRateLimited       = errors.New(http.StatusTooManyRequests, "upstream rate limited")
+	ErrAccessDenied      = errors.New(http.StatusForbidden, "upstream access denied")
+	ErrChallengeRequired = errors.New(http.StatusServiceUnavailable, "upstream verification required")
+	ErrUpstreamUnavailable = errors.New(http.StatusBadGateway, "upstream unavailable")
 )
