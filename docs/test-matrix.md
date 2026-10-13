@@ -11,6 +11,8 @@ or PostgreSQL container is required for that command.
 |---|---|---|
 | Go unit tests, Go protocol parsers, local HTTP fixtures | **RUN** | None |
 | All legacy provider network tests using `provider/internal/testkit` | **SKIP** | `METATUBE_LIVE_TEST=1` |
+| JavLibrary / JavDB real search and detail smoke tests | **SKIP** | `METATUBE_LIVE_TEST=1`, `METATUBE_JAVLIBRARY_NUMBER` or `METATUBE_JAVDB_NUMBER` |
+| External FlareSolverr Docker API live smoke test | **SKIP** | `METATUBE_LIVE_TEST=1`, `METATUBE_FLARESOLVERR_URL`, `METATUBE_FLARESOLVERR_TARGET` |
 | FANZA GraphQL live API tests | **SKIP** | `METATUBE_LIVE_TEST=1` |
 | Real-image comparison URL tests | **SKIP** | `METATUBE_LIVE_TEST=1` |
 | Baidu, DeepL, Google and GoogleFree live translation tests | **SKIP** | `METATUBE_LIVE_TEST=1` |
@@ -58,6 +60,21 @@ conservative. Do not set `METATUBE_LIVE_TEST=1` for the entire
 # Legacy provider remote HTML/API test cases
 METATUBE_LIVE_TEST=1 go test -v ./provider/javbus -run '^TestJavBus_'
 
+# JavLibrary: enable only a known source number and (optionally) existing FlareSolverr
+METATUBE_LIVE_TEST=1 METATUBE_JAVLIBRARY_NUMBER=YOUR_KNOWN_NUMBER \
+  METATUBE_FLARESOLVERR_URL=http://flaresolverr:8191 \
+  go test -v ./provider/javlibrary -run '^TestJavLibraryLiveSmoke$'
+
+# JavDB: check an exact catalog-number search and detail pair
+METATUBE_LIVE_TEST=1 METATUBE_JAVDB_NUMBER=YOUR_KNOWN_NUMBER \
+  METATUBE_FLARESOLVERR_URL=http://flaresolverr:8191 \
+  go test -v ./provider/javdb -run '^TestJavDBLiveSmoke$'
+
+# Confirm the external Docker API is reachable on this host/container
+METATUBE_LIVE_TEST=1 METATUBE_FLARESOLVERR_URL=http://flaresolverr:8191 \
+  METATUBE_FLARESOLVERR_TARGET=https://javdb.com/ \
+  go test -v ./internal/flaresolverr -run '^TestExternalFlareSolverrLiveSmoke$'
+
 # Real OpenAI translation; requires a real API key and reachable endpoint
 OPENAI_TRANSLATION_INTEGRATION=1 OPENAI_API_KEY=... \
   go test -v ./translate/openai -run '^TestOpenaiTranslate$'
@@ -66,12 +83,13 @@ OPENAI_TRANSLATION_INTEGRATION=1 OPENAI_API_KEY=... \
 METATUBE_DOCKER_TEST=1 go test -v ./engine/dbengine
 ```
 
-JavLibrary/JavDB tests shipped with G3/G4 are synthetic HTML fixture tests
-and run offline. The current code does **not** include live JavLibrary,
-JavDB or FlareSolverr end-to-end smoke tests that can prove a deployment's
-real access rights. For such verification, check the running provider's
-search and detail endpoints on the deployment host and inspect errors for
-challenge, rate limit, access denied and incomplete metadata separately.
+JavLibrary/JavDB G3/G4 fixture tests run offline; G6 also provides
+**explicitly gated** live smoke cases in `live_test.go`. They require known
+source identifiers and a reachable deployment environment. If no real source
+inputs are provided, these cases are skipped and must be recorded as
+**DEFERRED**, not passed. When enabled, they check actual search/detail
+round-trips and report challenges, rate limits, access denied and incomplete
+metadata separately. They never create a Docker browser or container.
 
 Before promotion to `main`: offline tests and lint should pass in an
 actual Go 1.26 environment; GitHub CI must be observed running; and live
