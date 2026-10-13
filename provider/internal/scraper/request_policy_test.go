@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -63,4 +64,24 @@ func TestPolicySurvivesProxyOverride(t *testing.T) {
 	if err := s.SetProxy(proxy.URL); err != nil { t.Fatal(err) }
 	if err := s.ClonedCollector().Visit("http://example.invalid/entry"); err != nil { t.Fatal(err) }
 	if forwarded.Load() != 1 { t.Fatalf("expected proxied request, got %d", forwarded.Load()) }
+}
+
+func TestContextAwareCloneDoesNotIssueCancelledRequest(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	s := NewScraper("context-fixture", server.URL, 1, language.English)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := s.ClonedCollectorWithContext(ctx).Visit(server.URL)
+	if err == nil {
+		t.Fatal("expected canceled HTTP request to fail")
+	}
+	if calls.Load() != 0 {
+		t.Fatalf("cancelled request reached server %d times", calls.Load())
+	}
 }
