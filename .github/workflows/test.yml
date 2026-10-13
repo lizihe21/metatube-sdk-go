@@ -34,3 +34,8 @@ jobs:
         run: |
           go version
           go test $(go list ./... | grep -Ev "github.com/metatube-community/metatube-sdk-go/translate")
+
+      - name: OpenAI translation protocol contract tests
+        run: |
+          # All cases use httptest; live API tests are separately opt-in.
+          go test -race ./translate/openai

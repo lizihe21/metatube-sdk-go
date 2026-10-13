@@ -81,7 +81,16 @@ func postTranslate() gin.HandlerFunc {
 }
 
 func serveTranslation(c *gin.Context, query *translateQuery, decode func(any) error) {
-	result, err := translate.New(query.Engine, decode).Translate(query.Q, query.From, query.To)
+	translator := translate.New(query.Engine, decode)
+	var (
+		result string
+		err    error
+	)
+	if aware, ok := translator.(translate.ContextTranslator); ok {
+		result, err = aware.TranslateContext(c.Request.Context(), query.Q, query.From, query.To)
+	} else {
+		result, err = translator.Translate(query.Q, query.From, query.To)
+	}
 	if err != nil {
 		abortWithError(c, err)
 		return
