@@ -96,6 +96,9 @@ func parseSearch(doc *goquery.Document, pageURL string) ([]*model.MovieSearchRes
 		if href == "" {
 			href = item.Find("a[href]").First().AttrOr("href", "")
 		}
+		if href == "" {
+			href = item.Closest("a[href]").AttrOr("href", "")
+		}
 		homepage, token := safeDetailLink(pageURL, href)
 		if homepage == "" || seen[token] {
 			return
