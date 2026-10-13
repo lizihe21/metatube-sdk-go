@@ -35,7 +35,7 @@ two upstream OpenAI-compatible APIs with either JSON or Server-Sent Events
   a full `/chat/completions` or `/responses` path. Existing path prefix
   is kept; the selected mode determines the final endpoint.
 - The default prompt is unchanged. `openai-prompt` overrides it.
-- API keys for the official OpenAI endpoint are required. For compatible
+- API keys for the official OpenAI endpoint are required, and the official endpoint must use HTTPS. For compatible
   local APIs, an empty key is allowed if the provider permits it.
 
 ### Responses API example
@@ -59,13 +59,13 @@ two upstream OpenAI-compatible APIs with either JSON or Server-Sent Events
 | Mode | JSON | SSE |
 |---|---|---|
 | Chat Completions | `choices[].message.content` string / text parts, legacy `choices[].text` | `choices[].delta.content`, `[DONE]` |
-| Responses | `output[].content[].output_text`, optional `output_text` | `response.output_text.delta`, `response.completed` |
+| Responses | `output[].content[].text` (for `type=output_text`), optional `output_text` | `response.output_text.delta`, `response.completed` |
 
 Parsing treats `finish_reason=length`, content filtering, refusals,
 incomplete Responses, incomplete streams, malformed response bodies
 and empty output as errors. Responses `completed` snapshot text is not
 duplicated with previously received deltas. It ignores Chat usage-only
-SSE chunks, SSE comments, CRLF, and multiline `data:` records.
+SSE chunks, SSE comments, CRLF, and multiline `data:` records. Gateway compatibility also covers mislabeled\nJSON/SSE response MIME types and the legacy `choices[].text` field.
 
 Both JSON and SSE responses have an 8 MiB overall read cap; SSE lines
 are individually capped at 1 MiB. Requests are capped at 256 KiB of text.
