@@ -37,6 +37,9 @@ func (c Config) normalized() (Config, error) {
 		c.MaxConcurrency < 0 || c.MaxAttempts < 0 {
 		return Config{}, ErrInvalidConfig
 	}
+	if c.MaxConcurrency > 128 || c.MinInterval > 24*time.Hour || c.Jitter > 24*time.Hour {
+		return Config{}, ErrInvalidConfig
+	}
 	if c.MaxConcurrency == 0 {
 		c.MaxConcurrency = 1
 	}
