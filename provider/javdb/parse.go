@@ -13,8 +13,10 @@ import (
 	"github.com/metatube-community/metatube-sdk-go/provider"
 )
 
-var numberInText = regexp.MustCompile(`[0-9]+`)
-var decimalInText = regexp.MustCompile(`[0-9]+(?:\.[0-9]+)?`)
+var (
+	numberInText  = regexp.MustCompile(`[0-9]+`)
+	decimalInText = regexp.MustCompile(`[0-9]+(?:\.[0-9]+)?`)
+)
 
 func clean(s string) string {
 	return strings.Join(strings.Fields(strings.TrimSpace(s)), " ")

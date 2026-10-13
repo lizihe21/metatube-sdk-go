@@ -75,6 +75,7 @@ func (b *releaseBody) Read(p []byte) (int, error) {
 	}
 	return n, err
 }
+
 func (b *releaseBody) Close() error {
 	err := b.ReadCloser.Close()
 	b.once.Do(b.release)

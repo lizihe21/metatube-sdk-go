@@ -22,6 +22,7 @@ func response(code int, retryAfter string) *http.Response {
 	}
 	return &http.Response{StatusCode: code, Header: headers, Body: io.NopCloser(strings.NewReader("ok"))}
 }
+
 func req(ctx context.Context) *http.Request {
 	r, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://example.org/item", nil)
 	return r
