@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -178,8 +179,23 @@ func (f *Fetcher) Post(url string, body io.Reader, opts ...Option) (resp *http.R
 }
 
 func (f *Fetcher) Request(method, url string, body io.Reader, opts ...Option) (resp *http.Response, err error) {
+	return f.RequestContext(context.Background(), method, url, body, opts...)
+}
+
+// GetContext forwards cancellation through the HTTP transport and request policy.
+func (f *Fetcher) GetContext(ctx context.Context, url string, opts ...Option) (*http.Response, error) {
+	return f.RequestContext(ctx, http.MethodGet, url, nil, opts...)
+}
+
+// PostContext forwards cancellation through the HTTP transport and request policy.
+func (f *Fetcher) PostContext(ctx context.Context, url string, body io.Reader, opts ...Option) (*http.Response, error) {
+	return f.RequestContext(ctx, http.MethodPost, url, body, opts...)
+}
+
+// RequestContext executes the request with the caller's cancellation context.
+func (f *Fetcher) RequestContext(ctx context.Context, method, url string, body io.Reader, opts ...Option) (resp *http.Response, err error) {
 	var req *http.Request
-	if req, err = http.NewRequest(method, url, body); err != nil {
+	if req, err = http.NewRequestWithContext(ctx, method, url, body); err != nil {
 		return
 	}
 	c := &Context{
