@@ -16,20 +16,20 @@ import (
 )
 
 const (
-	Name = "JavDB"
+	Name     = "JavDB"
 	Priority = 1000 - 14
-	baseURL = "https://javdb.com/"
+	baseURL  = "https://javdb.com/"
 )
 
 var (
-	_ provider.MovieProvider = (*JavDB)(nil)
-	_ provider.MovieSearcher = (*JavDB)(nil)
-	_ provider.RequestPolicySetter = (*JavDB)(nil)
+	_ provider.MovieProvider        = (*JavDB)(nil)
+	_ provider.MovieSearcher        = (*JavDB)(nil)
+	_ provider.RequestPolicySetter  = (*JavDB)(nil)
 	_ provider.ConfigSetter         = (*JavDB)(nil)
-	_ provider.ProxySetter = (*JavDB)(nil)
+	_ provider.ProxySetter          = (*JavDB)(nil)
 	_ provider.RequestTimeoutSetter = (*JavDB)(nil)
-	_ provider.Fetcher = (*JavDB)(nil)
-	opaqueIDPattern = regexp.MustCompile(`^[A-Za-z0-9]{3,40}$`)
+	_ provider.Fetcher              = (*JavDB)(nil)
+	opaqueIDPattern                 = regexp.MustCompile(`^[A-Za-z0-9]{3,40}$`)
 )
 
 // JavDB identifies titles by the opaque ID used in /v/{id}, not by movie number.
@@ -40,13 +40,13 @@ type JavDB struct {
 func New() *JavDB {
 	return &JavDB{Client: sitehtml.New(Name, baseURL, Priority, language.Chinese,
 		provider.RequestPolicyConfig{
-			MinInterval: 8 * time.Second,
-			Jitter: 2 * time.Second,
-			MaxConcurrency: 1,
-			MaxWait: 25 * time.Second,
+			MinInterval:       8 * time.Second,
+			Jitter:            2 * time.Second,
+			MaxConcurrency:    1,
+			MaxWait:           25 * time.Second,
 			RateLimitCooldown: 90 * time.Second,
 			ForbiddenCooldown: 5 * time.Minute,
-			MaxAttempts: 1,
+			MaxAttempts:       1,
 		})}
 }
 

@@ -72,10 +72,10 @@ func TestGetRejectsCrossOriginRedirect(t *testing.T) {
 
 func TestGetClassifiesRateLimitAndChallenge(t *testing.T) {
 	tests := []struct {
-		name string
+		name   string
 		status int
-		body string
-		want error
+		body   string
+		want   error
 	}{
 		{"rate-limit", http.StatusTooManyRequests, "slow down", provider.ErrRateLimited},
 		{"forbidden", http.StatusForbidden, "denied", provider.ErrAccessDenied},
