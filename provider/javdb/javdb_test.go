@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -62,10 +63,10 @@ func TestURLParseRejectsForeignAndMalformed(t *testing.T) {
 }
 
 func TestNumberLookupSelectsExactResult(t *testing.T) {
-	searches := 0
+	var searches atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/search" {
-			searches++
+			searches.Add(1)
 			_, _ = w.Write([]byte(searchHTML))
 			return
 		}
@@ -74,7 +75,7 @@ func TestNumberLookupSelectsExactResult(t *testing.T) {
 	defer server.Close()
 	info, err := fixtureClient(server.URL).GetMovieInfoByIDContext(context.Background(), "SSIS-001")
 	if err != nil { t.Fatal(err) }
-	if info.ID != "AbC9" || searches != 1 { t.Fatalf("wrong lookup %+v searches=%d", info, searches) }
+	if info.ID != "AbC9" || searches.Load() != 1 { t.Fatalf("wrong lookup %+v searches=%d", info, searches.Load()) }
 }
 
 func TestSearchBlockedAndUnknownPages(t *testing.T) {
