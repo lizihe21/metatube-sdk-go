@@ -269,6 +269,7 @@ func (c *Client) Get(ctx context.Context, rawURL string) (*goquery.Document, str
 		}
 		if doc.Find("form[action*='login'], form[action*='sign_in']").Length() > 0 &&
 			doc.Find("#video_info, .movie-list, .movie-panel-info").Length() == 0 {
+			c.governor.ObserveResponse(http.StatusForbidden, nil)
 			return nil, "", provider.ErrAccessDenied
 		}
 		return doc, current, nil
