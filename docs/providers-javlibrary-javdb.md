@@ -74,7 +74,71 @@ initial request. Set `MT_PROVIDER_JAVLIBRARY__PRIORITY=0` or
 `MT_PROVIDER_JAVDB__PRIORITY=0` to disable either provider. If both
 use the same configured origin, policy configurations must match.
 
-### Behavior and testing
+### Existing FlareSolverr Docker API (optional)
+
+No FlareSolverr container is created by this SDK. Point the providers at
+the HTTP endpoint of the **existing** FlareSolverr service.
+
+For containers on the same Docker/Compose network:
+
+```dotenv
+MT_MOVIE_PROVIDER_JAVLIBRARY__FLARESOLVERR_URL=http://flaresolverr:8191
+MT_MOVIE_PROVIDER_JAVDB__FLARESOLVERR_URL=http://flaresolverr:8191
+MT_MOVIE_PROVIDER_JAVLIBRARY__FLARESOLVERR_TIMEOUT=60s
+MT_MOVIE_PROVIDER_JAVDB__FLARESOLVERR_TIMEOUT=60s
+MT_MOVIE_PROVIDER_JAVLIBRARY__FLARESOLVERR_MODE=fallback
+MT_MOVIE_PROVIDER_JAVDB__FLARESOLVERR_MODE=fallback
+```
+
+`MT_PROVIDER_JAVDB__...` and `MT_PROVIDER_JAVLIBRARY__...` are also
+accepted by the existing configuration loader. Values with the
+`MT_MOVIE_PROVIDER_` prefix take precedence.
+
+- `FLARESOLVERR_URL`: `http://flaresolverr:8191`, or the full
+  `http://flaresolverr:8191/v1` API URL. Required to enable the feature.
+- `FLARESOLVERR_MODE=fallback` (default): send the ordinary, governed HTTP
+  request first. On a recognized 200/403/503 verification page or
+  `Cf-Mitigated: challenge`, issue one `request.get` to the external
+  FlareSolverr API. Ordinary 403, 429, 404 and transport failures do not
+  trigger it. After a successful browser-backed request, other metadata
+  requests temporarily prefer the API while the direct transport's 403
+  cooldown may still be active.
+- `FLARESOLVERR_MODE=always`: use FlareSolverr for all HTML metadata pages.
+  Useful when the site consistently serves browser challenges, or when the
+  challenge is not distinguishable from a plain block. It does *not* send
+  image/media downloads through FlareSolverr.
+- `FLARESOLVERR_TIMEOUT`: Go duration, default `60s`, maximum `3m`.
+  Transmitted as `maxTimeout` in **milliseconds**. The SDK adds 15 seconds
+  to the HTTP-client timeout for overhead.
+
+The SDK checks FlareSolverr's JSON `status`, `solution.status`, HTML,
+and final `solution.url`. Cross-origin final URLs and returned challenge
+pages are rejected. Matching-domain cookies and the browser User-Agent
+are retained for subsequent direct metadata requests; credentials from
+unrelated cookie domains are not imported. FlareSolverr API requests have
+an independent per-site queue with concurrency one and spacing derived
+from the existing provider rate policy. There is no retry storm and no
+browser/session lifecycle managed inside MetaTube.
+
+### Smoke test from the MetaTube container
+
+```sh
+curl -sS http://flaresolverr:8191/v1 \
+  -H 'Content-Type: application/json' \
+  -d '{"cmd":"request.get","url":"https://javdb.com/","maxTimeout":60000}' \
+  | jq '{status, message, targetStatus: .solution.status, finalURL: .solution.url}'
+```
+
+When MetaTube runs *inside Docker*, `localhost` is the MetaTube container
+and usually **not** the FlareSolverr container. Use the FlareSolverr
+service/container DNS name on a shared Docker network or a reachable host
+address. For a host-native MetaTube process, `127.0.0.1:8191` is fine if
+that port is published on the host. Do not expose FlareSolverr to the
+public Internet, and limit access to sites where automated retrieval is
+permitted. FlareSolverr might fail on more advanced challenges; successful
+API setup is not proof of site-specific access.
+
+## Behavior and testing
 
 Public API behavior remains unchanged:
 `SearchMovie`, `GetMovieInfoByID` and `GetMovieInfoByURL` still use
