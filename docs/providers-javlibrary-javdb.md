@@ -108,8 +108,9 @@ accepted by the existing configuration loader. Values with the
   challenge is not distinguishable from a plain block. It does *not* send
   image/media downloads through FlareSolverr.
 - `FLARESOLVERR_TIMEOUT`: Go duration, default `60s`, maximum `3m`.
-  Transmitted as `maxTimeout` in **milliseconds**. The SDK adds 15 seconds
-  to the HTTP-client timeout for overhead.
+  Transmitted as `maxTimeout` in **milliseconds**. The SDK's HTTP
+  deadline also allows for the bounded site-level FlareSolverr queue wait
+  (up to twice this timeout) and an additional 15 seconds for overhead.
 
 The SDK checks FlareSolverr's JSON `status`, `solution.status`, HTML,
 and final `solution.url`. Cross-origin final URLs and returned challenge
