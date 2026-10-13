@@ -27,9 +27,9 @@ func TestPolicyAppliesAcrossClonedCollectors(t *testing.T) {
 
 	s := NewScraper("fixture-site", server.URL, 1, language.English, WithAllowURLRevisit())
 	if err := s.SetRequestPolicy(provider.RequestPolicyConfig{
-		Scope: "scraper-clones-" + t.Name(),
+		Scope:          "scraper-clones-" + t.Name(),
 		MaxConcurrency: 1,
-		MinInterval: 65 * time.Millisecond,
+		MinInterval:    65 * time.Millisecond,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -58,12 +58,20 @@ func TestPolicySurvivesProxyOverride(t *testing.T) {
 
 	s := NewScraper("fixture-proxy", "http://example.invalid", 1, language.English)
 	if err := s.SetRequestPolicy(provider.RequestPolicyConfig{
-		Scope: "scraper-proxy-" + t.Name(),
+		Scope:          "scraper-proxy-" + t.Name(),
 		MaxConcurrency: 1,
-	}); err != nil { t.Fatal(err) }
-	if err := s.SetProxy(proxy.URL); err != nil { t.Fatal(err) }
-	if err := s.ClonedCollector().Visit("http://example.invalid/entry"); err != nil { t.Fatal(err) }
-	if forwarded.Load() != 1 { t.Fatalf("expected proxied request, got %d", forwarded.Load()) }
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetProxy(proxy.URL); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ClonedCollector().Visit("http://example.invalid/entry"); err != nil {
+		t.Fatal(err)
+	}
+	if forwarded.Load() != 1 {
+		t.Fatalf("expected proxied request, got %d", forwarded.Load())
+	}
 }
 
 func TestContextAwareCloneDoesNotIssueCancelledRequest(t *testing.T) {
