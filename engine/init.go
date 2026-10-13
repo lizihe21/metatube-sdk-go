@@ -102,8 +102,8 @@ func (e *Engine) applyProviderConfig(providerType string, provider mt.Provider, 
 		if v, err := config.GetString(proxyConfigKey); err == nil {
 			if err := s.SetProxy(v); err != nil {
 				e.logger.Printf("Set proxy for %s provider %s failed: %v", providerType, provider.Name(), err)
-			provider.SetPriority(0)
-			return
+				provider.SetPriority(0)
+				return
 			}
 			e.logger.Printf("Override %s provider proxy: %s (credentials redacted)", providerType, provider.Name())
 		}
@@ -141,8 +141,8 @@ func (e *Engine) applyProviderConfig(providerType string, provider mt.Provider, 
 	if s, ok := provider.(mt.ConfigSetter); ok {
 		if err := s.SetConfig(config); err != nil {
 			e.logger.Printf("Disable %s provider %s: invalid provider config: %v", providerType, provider.Name(), err)
-				provider.SetPriority(0)
-				return
+			provider.SetPriority(0)
+			return
 		}
 	}
 }
