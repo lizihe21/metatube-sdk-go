@@ -29,31 +29,7 @@ var (
 	_               provider.ProxySetter          = (*JavDB)(nil)
 	_               provider.RequestTimeoutSetter = (*JavDB)(nil)
 	_               provider.Fetcher              = (*JavDB)(nil)
-	opaqueIDPattern                               = regexp.MustCompile(`^[A-Za-z0-9]{3,40}package javdb
-
-import (
-	"context"
-	"errors"
-	"net/url"
-	"regexp"
-	"strings"
-	"time"
-
-	"golang.org/x/text/language"
-
-	"github.com/metatube-community/metatube-sdk-go/model"
-	"github.com/metatube-community/metatube-sdk-go/provider"
-	"github.com/metatube-community/metatube-sdk-go/provider/internal/sitehtml"
-)
-
-const (
-	Name     = "JavDB"
-	Priority = 1000 - 14
-	baseURL  = "https://javdb.com/"
-)
-
-var (
-)
+	opaqueIDPattern                               = regexp.MustCompile(`^[A-Za-z0-9]{3,40}$`)
 )
 
 // JavDB identifies titles by the opaque ID used in /v/{id}, not by movie number.
