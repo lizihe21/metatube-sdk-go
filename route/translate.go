@@ -97,7 +97,7 @@ func serveTranslation(c *gin.Context, query *translateQuery, decode func(any) er
 	}
 	c.JSON(http.StatusOK, &responseMessage{Data: &translateResponse{
 		From: query.From,
-		To: query.To,
+		To:   query.To,
 		Text: result,
 	}})
 }

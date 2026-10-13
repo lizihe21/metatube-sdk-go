@@ -24,15 +24,15 @@ const (
 )
 
 var (
-	_ provider.MovieProvider        = (*JavLibrary)(nil)
-	_ provider.MovieSearcher        = (*JavLibrary)(nil)
-	_ provider.RequestPolicySetter  = (*JavLibrary)(nil)
-	_ provider.ConfigSetter         = (*JavLibrary)(nil)
-	_ provider.ProxySetter          = (*JavLibrary)(nil)
-	_ provider.RequestTimeoutSetter = (*JavLibrary)(nil)
-	_ provider.Fetcher              = (*JavLibrary)(nil)
-	opaqueIDPattern                 = regexp.MustCompile(`^[a-zA-Z0-9]{5,64}$`)
-	runtimeDigits                   = regexp.MustCompile(`[0-9]+`)
+	_               provider.MovieProvider        = (*JavLibrary)(nil)
+	_               provider.MovieSearcher        = (*JavLibrary)(nil)
+	_               provider.RequestPolicySetter  = (*JavLibrary)(nil)
+	_               provider.ConfigSetter         = (*JavLibrary)(nil)
+	_               provider.ProxySetter          = (*JavLibrary)(nil)
+	_               provider.RequestTimeoutSetter = (*JavLibrary)(nil)
+	_               provider.Fetcher              = (*JavLibrary)(nil)
+	opaqueIDPattern                               = regexp.MustCompile(`^[a-zA-Z0-9]{5,64}$`)
+	runtimeDigits                                 = regexp.MustCompile(`[0-9]+`)
 )
 
 // JavLibrary exposes native opaque video IDs, not movie numbers, to callers.
@@ -385,14 +385,14 @@ func parseDetail(doc *goquery.Document, pageURL, opaqueID string) (*model.MovieI
 		ID: opaqueID, Number: number, Title: title, Provider: Name, Homepage: pageURL,
 		CoverURL: cover, ThumbURL: cover,
 		ReleaseDate: parser.ParseDate(detailText(doc, "#video_date .text")),
-		Runtime: runtime,
-		Director: detailText(doc, "#video_director .text", "#video_director a"),
-		Maker: detailText(doc, "#video_maker .text", "#video_maker a"),
-		Label: detailText(doc, "#video_label .text", "#video_label a"),
-		Series: detailText(doc, "#video_series .text", "#video_series a"),
-		Actors: uniqueTexts(doc.Find("#video_cast .star a")),
-		Genres: uniqueTexts(doc.Find("#video_genres .genre a")),
-		Score: parser.ParseScore(detailText(doc, "#video_rating .num")),
+		Runtime:     runtime,
+		Director:    detailText(doc, "#video_director .text", "#video_director a"),
+		Maker:       detailText(doc, "#video_maker .text", "#video_maker a"),
+		Label:       detailText(doc, "#video_label .text", "#video_label a"),
+		Series:      detailText(doc, "#video_series .text", "#video_series a"),
+		Actors:      uniqueTexts(doc.Find("#video_cast .star a")),
+		Genres:      uniqueTexts(doc.Find("#video_genres .genre a")),
+		Score:       parser.ParseScore(detailText(doc, "#video_rating .num")),
 	}
 	seen := make(map[string]bool)
 	doc.Find("#sample-waterfall a[href], #video_samples a[href]").Each(func(_ int, a *goquery.Selection) {
