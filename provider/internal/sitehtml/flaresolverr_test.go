@@ -97,13 +97,14 @@ func TestSolverCookiesAndAgentReusedByDirectRequests(t *testing.T) {
  defer origin.Close()
  solver,_:=fakeSolver(t,"<html><div id='video_info'>solved</div></html>","UA-FS",true,"")
  defer solver.Close()
- client:=New("Test",origin.URL,1,language.English,provider.RequestPolicyConfig{MaxConcurrency:1,MaxWait:time.Second})
+ client:=New("Test",origin.URL,1,language.English,provider.RequestPolicyConfig{MaxConcurrency:1,MaxWait:time.Second,ForbiddenCooldown:time.Millisecond})
  if err:=client.SetConfig(solverConfig(solver.URL,""));err!=nil{t.Fatal(err)}
  _,_,err:=client.Get(context.Background(),origin.URL+"/detail")
  if err!=nil{t.Fatal(err)}
  client.mu.Lock()
  client.preferSolverUntil=time.Time{} // emulate end of site access cooldown
  client.mu.Unlock()
+ time.Sleep(10*time.Millisecond) // allow the short direct request cooldown to elapse
  doc,_,err:=client.Get(context.Background(),origin.URL+"/detail")
  if err!=nil||doc.Find("#video_info").Text()!="direct"||direct.Load()!=2 {
   t.Fatalf("direct reuse failed: %v requests=%d",err,direct.Load())
