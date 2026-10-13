@@ -110,3 +110,19 @@ func TestSearchHandlesSameOriginDetailRedirect(t *testing.T) {
 		t.Fatalf("unexpected redirect results: %v %+v", err, items)
 	}
 }
+
+func TestSearchResultHandlesAnchorWrappingItem(t *testing.T) {
+	html := `<html><body><div class="movie-list"><a href="/v/QwE7"><div class="item"><div class="video-title"><strong>ABCD-123</strong> Wrapped</div></div></a></div></body></html>`
+	items, err := parseSearch(readDoc(t, html), "https://javdb.com/search?q=ABCD-123")
+	if err != nil || len(items) != 1 || items[0].ID != "QwE7" {
+		t.Fatalf("wrapped anchor not parsed: %v %+v", err, items)
+	}
+}
+
+func TestSearchRejectsCrossSiteLinks(t *testing.T) {
+	html := `<html><body><div class="movie-list"><div class="item"><a href="http://169.254.169.254/v/AbC9">Bad</a><div class="video-title"><strong>ABCD-123</strong> Bad</div></div></div></body></html>`
+	items, err := parseSearch(readDoc(t, html), "https://javdb.com/search?q=ABCD-123")
+	if err == nil || len(items) != 0 {
+		t.Fatalf("foreign search link became a valid item: %v %+v", err, items)
+	}
+}
