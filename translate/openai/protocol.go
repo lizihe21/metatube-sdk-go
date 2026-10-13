@@ -204,7 +204,7 @@ func retryDelay(resp *http.Response, attempt int) (time.Duration, bool) {
 		return 0, false
 	}
 	switch resp.StatusCode {
-	case 429, 502, 503, 504:
+	case http.StatusTooManyRequests, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
 	default:
 		return 0, false
 	}

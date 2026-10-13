@@ -108,8 +108,9 @@ func Default(cfg *Config) *Fetcher {
 	return f
 }
 
-// ConfigurePolicy attaches governance outside retryablehttp, then disables
-// retryablehttp's own retries so each attempt is governed exactly once.
+// ConfigurePolicy attaches governance to the underlying HTTP transport and
+// disables retryablehttp's own retries. Each actual network attempt consumes
+// the shared request budget.
 // Configure this during initialization, before concurrent requests begin.
 func (f *Fetcher) ConfigurePolicy(cfg provider.RequestPolicyConfig) error {
 	if cfg.Scope == "" {
@@ -134,9 +135,17 @@ func (f *Fetcher) ConfigurePolicy(cfg provider.RequestPolicyConfig) error {
 		return fmt.Errorf("fetch: cannot change an installed request policy")
 	}
 	if f.retryClient != nil {
+		// StandardClient wraps retryablehttp's RoundTripper. Governing that
+		// outer wrapper hides upstream 503/429 responses before the policy
+		// can retry. Wrap the inner network transport instead.
 		f.retryClient.RetryMax = 0
+		f.retryClient.CheckRetry = func(context.Context, *http.Response, error) (bool, error) {
+			return false, nil
+		}
+		f.retryClient.HTTPClient.Transport = requestpolicy.Wrap(f.retryClient.HTTPClient.Transport, gov)
+	} else {
+		f.client.Transport = requestpolicy.Wrap(f.client.Transport, gov)
 	}
-	f.client.Transport = requestpolicy.Wrap(f.client.Transport, gov)
 	f.policy = gov
 	return nil
 }

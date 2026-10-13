@@ -23,7 +23,7 @@ func response(code int, retryAfter string) *http.Response {
 	return &http.Response{StatusCode: code, Header: headers, Body: io.NopCloser(strings.NewReader("ok"))}
 }
 func req(ctx context.Context) *http.Request {
-	r, _ := http.NewRequestWithContext(ctx, "GET", "https://example.org/item", nil)
+	r, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://example.org/item", nil)
 	return r
 }
 
@@ -144,7 +144,7 @@ func TestRetriesTransientStatusWithinBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = res.Body.Close()
-	if res.StatusCode != 200 || count.Load() != 2 {
+	if res.StatusCode != http.StatusOK || count.Load() != 2 {
 		t.Fatalf("status=%d attempts=%d", res.StatusCode, count.Load())
 	}
 }

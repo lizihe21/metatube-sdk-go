@@ -124,7 +124,7 @@ func (p *JavDB) GetMovieInfoByURLContext(ctx context.Context, rawURL string) (*m
 	if err != nil {
 		return nil, err
 	}
-	doc, finalURL, err := p.Client.Get(ctx, rawURL)
+	doc, finalURL, err := p.Get(ctx, rawURL)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (p *JavDB) SearchMovieContext(ctx context.Context, keyword string) ([]*mode
 	}
 	searchURL := strings.TrimRight(p.URL().String(), "/") + "/search?q=" +
 		url.QueryEscape(keyword) + "&f=all"
-	doc, finalURL, err := p.Client.Get(ctx, searchURL)
+	doc, finalURL, err := p.Get(ctx, searchURL)
 	if err != nil {
 		return nil, err
 	}

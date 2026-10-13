@@ -73,7 +73,7 @@ func TestConfiguredSolverFallbackOnChallenge403(t *testing.T) {
 
 func TestConfiguredSolverAlwaysModeAvoidsDirectRequests(t *testing.T) {
  var direct atomic.Int32
- origin:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){direct.Add(1);w.WriteHeader(200)}))
+ origin:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){direct.Add(1);w.WriteHeader(http.StatusOK)}))
  defer origin.Close()
  solver,calls:=fakeSolver(t,"<html><div id='video_info'>ready</div></html>","UA-FS",false,"")
  defer solver.Close()
@@ -87,7 +87,7 @@ func TestSolverCookiesAndAgentReusedByDirectRequests(t *testing.T) {
  var direct atomic.Int32
  origin:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
   n:=direct.Add(1)
-  if n==1 {w.Header().Set("Cf-Mitigated","challenge");w.WriteHeader(403);return}
+  if n==1 {w.Header().Set("Cf-Mitigated","challenge");w.WriteHeader(http.StatusForbidden);return}
   cookie,err:=r.Cookie("cf_clearance")
   if err!=nil||cookie.Value!="ok"||r.Header.Get("User-Agent")!="UA-FS" {
    t.Errorf("browser session not reused: ua=%q cookie=%v (%v)",r.Header.Get("User-Agent"),cookie,err)

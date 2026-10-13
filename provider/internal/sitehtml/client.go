@@ -67,7 +67,7 @@ func (c *Client) applyPolicyLocked(cfg provider.RequestPolicyConfig) error {
 		return fmt.Errorf("sitehtml: request policy already installed")
 	}
 	if cfg.Scope == "" {
-		cfg.Scope = c.Scraper.URL().Host
+		cfg.Scope = c.URL().Host
 	}
 	if cfg.MinInterval == 0 {
 		cfg.MinInterval = c.defaults.MinInterval
@@ -105,7 +105,7 @@ func (c *Client) applyPolicyLocked(cfg provider.RequestPolicyConfig) error {
 	if err := c.Scraper.SetRequestPolicy(cfg); err != nil {
 		return err
 	}
-	if err := c.Fetcher.ConfigurePolicy(cfg); err != nil {
+	if err := c.ConfigurePolicy(cfg); err != nil {
 		return err
 	}
 	c.governor = gov
@@ -141,7 +141,7 @@ func (c *Client) SetProxy(proxyURL string) error {
 	if err := c.Scraper.SetProxy(proxyURL); err != nil {
 		return err
 	}
-	return c.Fetcher.ConfigureProxy(proxyURL)
+	return c.ConfigureProxy(proxyURL)
 }
 
 // SetConfig enables an optional external FlareSolverr HTTP API. It is
@@ -307,7 +307,7 @@ func (c *Client) getWithSolver(ctx context.Context, target string) (*goquery.Doc
 // SetRequestTimeout applies request timeout to both HTTP stacks.
 func (c *Client) SetRequestTimeout(timeout time.Duration) {
 	c.Scraper.SetRequestTimeout(timeout)
-	c.Fetcher.ConfigureTimeout(timeout)
+	c.ConfigureTimeout(timeout)
 }
 
 // Fetch fulfills provider.Fetcher for associated media downloads.
@@ -384,7 +384,7 @@ func (c *Client) Get(ctx context.Context, rawURL string) (*goquery.Document, str
 		if err := ctx.Err(); err != nil {
 			return nil, "", err
 		}
-		coll := c.Scraper.ClonedCollectorWithContext(ctx)
+		coll := c.ClonedCollectorWithContext(ctx)
 		c.mu.Lock()
 		ua := c.userAgent
 		c.mu.Unlock()

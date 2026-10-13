@@ -10,6 +10,9 @@ func assertFactoryWriteLockAvailable(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		factoryMu.Lock()
+		// A real registry write proves callbacks released the read lock.
+		movieFactories["test-registry-lock-probe"] = nil
+		delete(movieFactories, "test-registry-lock-probe")
 		factoryMu.Unlock()
 		close(done)
 	}()
@@ -44,6 +47,8 @@ func TestRangeMovieFactoryAllowsCallbackToModifyRegistry(t *testing.T) {
 	go func() {
 		RangeMovieFactory(func(string, MovieFactory) bool {
 			factoryMu.Lock()
+			movieFactories["test-registry-callback-write"] = nil
+			delete(movieFactories, "test-registry-callback-write")
 			factoryMu.Unlock()
 			return false
 		})

@@ -118,7 +118,7 @@ func TestRefusesHTTPRedirects(t *testing.T) {
 	got := 0
 	destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got++
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}))
 	defer destination.Close()
 	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

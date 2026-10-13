@@ -135,7 +135,7 @@ func (p *JavLibrary) GetMovieInfoByURLContext(ctx context.Context, rawURL string
 	if err != nil {
 		return nil, err
 	}
-	doc, finalURL, err := p.Client.Get(ctx, rawURL)
+	doc, finalURL, err := p.Get(ctx, rawURL)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (p *JavLibrary) SearchMovieContext(ctx context.Context, keyword string) ([]
 	if keyword == "" {
 		return nil, provider.ErrInvalidKeyword
 	}
-	doc, finalURL, err := p.Client.Get(ctx, searchURL(p.URL().String(), keyword))
+	doc, finalURL, err := p.Get(ctx, searchURL(p.URL().String(), keyword))
 	if err != nil {
 		return nil, err
 	}
@@ -290,8 +290,8 @@ func makeVideoURL(pageURL, href, token string) string {
 	if (target.Scheme != "https" && target.Scheme != "http") || !strings.EqualFold(target.Host, u.Host) {
 		return ""
 	}
-	if target.Query().Get("v") != token && !(strings.EqualFold(path.Ext(target.Path), ".html") &&
-		strings.EqualFold(strings.TrimSuffix(path.Base(target.Path), path.Ext(target.Path)), token)) {
+	if target.Query().Get("v") != token && (!strings.EqualFold(path.Ext(target.Path), ".html") ||
+		!strings.EqualFold(strings.TrimSuffix(path.Base(target.Path), path.Ext(target.Path)), token)) {
 		return ""
 	}
 	target.Fragment = ""

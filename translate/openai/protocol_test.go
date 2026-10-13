@@ -24,7 +24,7 @@ func TestChatJSONAndExistingConfiguration(t *testing.T) {
 		} `json:"messages"`
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/chat/completions" || r.Header.Get("Authorization") != "Bearer key" || r.Method != "POST" {
+		if r.URL.Path != "/v1/chat/completions" || r.Header.Get("Authorization") != "Bearer key" || r.Method != http.MethodPost {
 			t.Errorf("request: %v %q", r.URL, r.Header.Get("Authorization"))
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -172,7 +172,7 @@ func TestRetriesOnlyEarlyTransientHTTPResponses(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if n.Add(1) == 1 {
 			w.Header().Set("Retry-After", "0")
-			w.WriteHeader(503)
+			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 		io.WriteString(w, `{"choices":[{"message":{"content":"Recovered"},"finish_reason":"stop"}]}`)
@@ -201,7 +201,7 @@ func TestNoRetryAfterBadStreamOrLongRetryAfter(t *testing.T) {
 	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		k.Add(1)
 		w.Header().Set("Retry-After", "600")
-		w.WriteHeader(429)
+		w.WriteHeader(http.StatusTooManyRequests)
 	}))
 	defer server2.Close()
 	o.APIUrl = server2.URL
@@ -270,7 +270,7 @@ func TestResponsesCompletedWithoutOutputAcceptsReceivedDeltas(t *testing.T) {
 }
 
 func TestCancelDuringRetryWait(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Header().Set("Retry-After", "1"); w.WriteHeader(429) }))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Header().Set("Retry-After", "1"); w.WriteHeader(http.StatusTooManyRequests) }))
 	defer server.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancel()
