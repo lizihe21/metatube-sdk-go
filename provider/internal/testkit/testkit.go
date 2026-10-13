@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 
@@ -148,8 +147,10 @@ func (s *internalTestSuite) TestFetch(p mt.Fetcher, items []string, vfs ...Valid
 }
 
 func Test[T mt.Provider](t *testing.T, new func() T, items []string, vfs ...ValidateFunc) {
-	if ci, _ := strconv.ParseBool(os.Getenv("GITHUB_ACTIONS")); ci {
-		t.SkipNow() // Skip in GitHub Actions
+	// Live site checks are explicitly opt-in on every machine, not just CI.
+	// Offline fixture tests do not use this helper and continue to run.
+	if os.Getenv("METATUBE_LIVE_TEST") != "1" {
+		t.Skip("live provider test skipped; set METATUBE_LIVE_TEST=1 to enable")
 	}
 
 	functionName := getFrame(1).Function
