@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -84,6 +85,14 @@ func (s *Scraper) ParseActorIDFromURL(string) (string, error) { panic("unimpleme
 
 // ClonedCollector returns cloned internal collector.
 func (s *Scraper) ClonedCollector() *colly.Collector { return s.c.Clone() }
+
+// ClonedCollectorWithContext binds request cancellation to the cloned
+// Collector without mutating the parent Collector's shared HTTP backend.
+func (s *Scraper) ClonedCollectorWithContext(ctx context.Context) *colly.Collector {
+	clone := s.c.Clone()
+	clone.Context = ctx
+	return clone
+}
 
 // SetProxy sets http or socks5 proxy for HTTP requests.
 func (s *Scraper) SetProxy(proxyURL string) error {
