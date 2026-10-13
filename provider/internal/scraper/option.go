@@ -21,7 +21,7 @@ func WithAllowURLRevisit() Option {
 
 func WithLogDebugger() Option {
 	return func(s *Scraper) error {
-		colly.Debugger(&debug.LogDebugger{})
+		colly.Debugger(&debug.LogDebugger{})(s.c)
 		return nil
 	}
 }
