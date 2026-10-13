@@ -1,5 +1,6 @@
-// Package sitehtml provides a guarded HTML fetcher for site-specific parsers.
-// It deliberately does not solve CAPTCHAs or bypass source access controls.
+// Package sitehtml provides guarded HTML fetching for site-specific parsers.
+// When configured, it delegates verification challenges to an already running
+// external FlareSolverr HTTP service; no browser is started within this SDK.
 package sitehtml
 
 import (
@@ -31,15 +32,15 @@ const maxRedirects = 2
 type Client struct {
 	*scraper.Scraper
 	*fetch.Fetcher
-	mu               sync.Mutex
-	configured       bool
-	defaults         provider.RequestPolicyConfig
-	policyConfig     provider.RequestPolicyConfig
-	governor         *requestpolicy.Governor
-	solver           *flaresolverr.Client
-	solverMode       string
+	mu                sync.Mutex
+	configured        bool
+	defaults          provider.RequestPolicyConfig
+	policyConfig      provider.RequestPolicyConfig
+	governor          *requestpolicy.Governor
+	solver            *flaresolverr.Client
+	solverMode        string
 	preferSolverUntil time.Time
-	userAgent        string
+	userAgent         string
 }
 
 // New does not send requests. Policies are installed lazily so Engine's
@@ -194,11 +195,11 @@ func (c *Client) SetConfig(config provider.Config) error {
 	// The two paths cannot share that cooldown without blocking the fallback.
 	solverGovernor, err := requestpolicy.Shared("flaresolverr:"+c.Scraper.URL().Host,
 		requestpolicy.Config{
-			MinInterval: c.policyConfig.MinInterval,
-			Jitter: c.policyConfig.Jitter,
+			MinInterval:    c.policyConfig.MinInterval,
+			Jitter:         c.policyConfig.Jitter,
 			MaxConcurrency: 1,
-			MaxWait: 2 * timeout,
-			MaxAttempts: 1,
+			MaxWait:        2 * timeout,
+			MaxAttempts:    1,
 		})
 	if err != nil {
 		return err
@@ -274,8 +275,10 @@ func (c *Client) getWithSolver(ctx context.Context, target string) (*goquery.Doc
 		if p == "" {
 			p = "/"
 		}
-		hc := &http.Cookie{Name: cookie.Name, Value: cookie.Value, Path: p,
-			Domain: cookie.Domain, Secure: cookie.Secure, HttpOnly: cookie.HTTPOnly}
+		hc := &http.Cookie{
+			Name: cookie.Name, Value: cookie.Value, Path: p,
+			Domain: cookie.Domain, Secure: cookie.Secure, HttpOnly: cookie.HTTPOnly,
+		}
 		if cookie.Expires > 0 && cookie.Expires < 1e12 {
 			hc.Expires = time.Unix(int64(cookie.Expires), 0)
 		}
@@ -290,7 +293,9 @@ func (c *Client) getWithSolver(ctx context.Context, target string) (*goquery.Doc
 	}
 	// A direct 403 may have imposed a five-minute cooldown on the original
 	// governor. During that interval use the separate, rate-limited API path.
-	c.preferSolverUntil = time.Now().Add(5 * time.Minute)
+	if time.Now().After(c.preferSolverUntil) {
+		c.preferSolverUntil = time.Now().Add(5 * time.Minute)
+	}
 	c.mu.Unlock()
 	return doc, result.URL, nil
 }
