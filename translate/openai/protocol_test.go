@@ -334,3 +334,11 @@ func TestPartialContentHTTPStatusRejected(t *testing.T) {
 		t.Fatalf("206 accepted: %v", err)
 	}
 }
+
+func TestOfficialAPIEndpointCannotSendKeyOverHTTP(t *testing.T) {
+	o := &OpenAI{APIKey: "test-secret", APIUrl: "http://api.openai.com/v1", Model: "model"}
+	_, err := o.Translate("hi", "en", "fr")
+	if !errors.Is(err, ErrConfig) {
+		t.Fatalf("insecure official API URL accepted: %v", err)
+	}
+}

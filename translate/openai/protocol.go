@@ -72,6 +72,9 @@ func (oa *OpenAI) TranslateContext(ctx context.Context, q, from, to string) (str
 	if err != nil {
 		return "", err
 	}
+	if endpoint.Hostname() == "api.openai.com" && endpoint.Scheme != "https" {
+		return "", fmt.Errorf("%w: official OpenAI API requires HTTPS", ErrConfig)
+	}
 	if oa.APIKey == "" && (oa.APIUrl == "" || endpoint.Hostname() == "api.openai.com") {
 		return "", fmt.Errorf("%w: API key required for official endpoint", ErrConfig)
 	}
