@@ -127,3 +127,11 @@ func TestSearchRejectsCrossSiteLinks(t *testing.T) {
 		t.Fatalf("foreign search link became a valid item: %v %+v", err, items)
 	}
 }
+
+func TestRecognizedEmptySearchIsNotParserError(t *testing.T) {
+	doc := readDoc(t, "<html><body><p>No results found</p></body></html>")
+	results, err := parseSearch(doc, "https://javdb.com/search?q=none")
+	if err != nil || len(results) != 0 {
+		t.Fatalf("empty result not classified: %v %+v", err, results)
+	}
+}
