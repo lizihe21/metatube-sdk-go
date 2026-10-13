@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -12,6 +14,8 @@ import (
 
 	"github.com/metatube-community/metatube-sdk-go/common/random"
 	"github.com/metatube-community/metatube-sdk-go/errors"
+	"github.com/metatube-community/metatube-sdk-go/provider"
+	"github.com/metatube-community/metatube-sdk-go/internal/requestpolicy"
 )
 
 var DefaultFetcher = Default(&Config{RandomUserAgent: true})
@@ -46,6 +50,8 @@ type Config struct {
 type Fetcher struct {
 	client *http.Client
 	config *Config
+	retryClient *retryablehttp.Client
+	policy *requestpolicy.Governor
 }
 
 func New(c *http.Client, cfg *Config) *Fetcher {
@@ -96,7 +102,49 @@ func Default(cfg *Config) *Fetcher {
 			transport.TLSClientConfig.InsecureSkipVerify = true
 		}
 	}
-	return New(c.StandardClient(), cfg)
+	f := New(c.StandardClient(), cfg)
+	f.retryClient = c
+	return f
+}
+
+// ConfigurePolicy attaches governance outside retryablehttp, then disables
+// retryablehttp's own retries so each attempt is governed exactly once.
+// Configure this during initialization, before concurrent requests begin.
+func (f *Fetcher) ConfigurePolicy(cfg provider.RequestPolicyConfig) error {
+	if cfg.Scope == "" { return fmt.Errorf("fetch: request policy scope required") }
+	gov, err := requestpolicy.Shared(cfg.Scope, requestpolicy.Config{
+		MinInterval:cfg.MinInterval, Jitter:cfg.Jitter,
+		MaxConcurrency:cfg.MaxConcurrency, MaxWait:cfg.MaxWait,
+		RateLimitCooldown:cfg.RateLimitCooldown,
+		ForbiddenCooldown:cfg.ForbiddenCooldown, MaxAttempts:cfg.MaxAttempts,
+	})
+	if err != nil { return err }
+	if f.policy != nil {
+		if f.policy == gov { return nil }
+		return fmt.Errorf("fetch: cannot change an installed request policy")
+	}
+	if f.retryClient != nil { f.retryClient.RetryMax = 0 }
+	f.client.Transport = requestpolicy.Wrap(f.client.Transport, gov)
+	f.policy = gov
+	return nil
+}
+
+// ConfigureProxy retains the existing transport and applies the proxy at its
+// innermost network layer, without bypassing the governance wrapper.
+func (f *Fetcher) ConfigureProxy(proxyURL string) error {
+	u, err := url.Parse(proxyURL)
+	if err != nil { return err }
+	var t http.RoundTripper
+	if f.retryClient != nil { t = f.retryClient.HTTPClient.Transport
+	} else { t = f.client.Transport }
+	transport, ok := t.(*http.Transport)
+	if !ok { return fmt.Errorf("fetch: proxy requires an http.Transport") }
+	transport.Proxy = http.ProxyURL(u)
+	return nil
+}
+
+func (f *Fetcher) ConfigureTimeout(timeout time.Duration) {
+	f.client.Timeout = timeout
 }
 
 func (f *Fetcher) Fetch(url string) (resp *http.Response, err error) {

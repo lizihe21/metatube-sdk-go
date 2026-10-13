@@ -90,6 +90,7 @@ func WithDisableRedirects() Option {
 
 func WithTransport(transport http.RoundTripper) Option {
 	return func(s *Scraper) error {
+		s.baseTransport = transport
 		s.c.WithTransport(transport)
 		return nil
 	}
