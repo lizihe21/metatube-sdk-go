@@ -136,3 +136,13 @@ func TestChallengeStartsSharedCooldown(t *testing.T) {
 		t.Fatalf("unexpected requests during cooldown: %d", hits.Load())
 	}
 }
+
+func TestPublicDetailWithLoginWidgetIsNotRejected(t *testing.T) {
+	client, server := newFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<html><body><form action='/login'><input></form><div id='video_info'>Public metadata</div></body></html>"))
+	})
+	doc, _, err := client.Get(context.Background(), server.URL+"/detail")
+	if err != nil || doc.Find("#video_info").Length() != 1 {
+		t.Fatalf("public metadata with login widget was rejected: %v", err)
+	}
+}
