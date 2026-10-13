@@ -146,3 +146,11 @@ func TestSearchQueryEncoding(t *testing.T) {
 		t.Fatalf("query not encoded: %v %v", u, err)
 	}
 }
+
+func TestRecognizedEmptySearchIsNotParserError(t *testing.T) {
+	doc := readDoc(t, "<html><body><p>No results found</p></body></html>")
+	results, err := parseSearch(doc, "https://www.javlibrary.com/cn/vl_searchbyid.php?keyword=none")
+	if err != nil || len(results) != 0 {
+		t.Fatalf("empty result not classified: %v %+v", err, results)
+	}
+}
