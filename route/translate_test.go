@@ -2,6 +2,8 @@ package route
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -76,5 +78,36 @@ func TestLoggerDoesNotWriteSensitiveQuery(t *testing.T) {
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/v1/translate?openai-api-key=highly-sensitive", nil))
 	if strings.Contains(logOutput.String(), "highly-sensitive") {
 		t.Fatal("query token leaked in access log")
+	}
+}
+
+type contextAwareFixture struct{}
+
+type translationCtxKey struct{}
+
+func (*contextAwareFixture) Translate(string, string, string) (string, error) {
+	return "", errors.New("legacy translation method invoked instead of TranslateContext")
+}
+
+func (*contextAwareFixture) TranslateContext(ctx context.Context, q, from, to string) (string, error) {
+	if ctx.Value(translationCtxKey{}) != "expected" {
+		return "", errors.New("request context was not propagated")
+	}
+	return from + ":" + to + ":" + q, nil
+}
+
+func TestPostTranslationPropagatesRequestContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	translate.Register(&contextAwareFixture{})
+	r := gin.New()
+	r.POST("/v1/translate", postTranslate())
+	payload := []byte(`{"engine":"contextAwareFixture","q":"hello","from":"en","to":"fr"}`)
+	req := httptest.NewRequest(http.MethodPost, "/v1/translate", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	req = req.WithContext(context.WithValue(req.Context(), translationCtxKey{}, "expected"))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "en:fr:hello") {
+		t.Fatalf("context-aware translator not invoked: status=%d body=%s", w.Code, w.Body.String())
 	}
 }
