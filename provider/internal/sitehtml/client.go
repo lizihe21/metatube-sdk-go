@@ -17,6 +17,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/metatube-community/metatube-sdk-go/common/fetch"
+	"github.com/metatube-community/metatube-sdk-go/internal/requestpolicy"
 	"github.com/metatube-community/metatube-sdk-go/provider"
 	"github.com/metatube-community/metatube-sdk-go/provider/internal/scraper"
 )
@@ -28,9 +29,10 @@ const maxRedirects = 2
 type Client struct {
 	*scraper.Scraper
 	*fetch.Fetcher
-	mu sync.Mutex
+	mu         sync.Mutex
 	configured bool
-	defaults provider.RequestPolicyConfig
+	defaults   provider.RequestPolicyConfig
+	governor   *requestpolicy.Governor
 }
 
 // New does not send requests. Policies are installed lazily so Engine's
@@ -80,12 +82,25 @@ func (c *Client) applyPolicyLocked(cfg provider.RequestPolicyConfig) error {
 	if cfg.MaxAttempts == 0 {
 		cfg.MaxAttempts = c.defaults.MaxAttempts
 	}
+	gov, err := requestpolicy.Shared(cfg.Scope, requestpolicy.Config{
+		MinInterval: cfg.MinInterval,
+		Jitter: cfg.Jitter,
+		MaxConcurrency: cfg.MaxConcurrency,
+		MaxWait: cfg.MaxWait,
+		RateLimitCooldown: cfg.RateLimitCooldown,
+		ForbiddenCooldown: cfg.ForbiddenCooldown,
+		MaxAttempts: cfg.MaxAttempts,
+	})
+	if err != nil {
+		return err
+	}
 	if err := c.Scraper.SetRequestPolicy(cfg); err != nil {
 		return err
 	}
 	if err := c.Fetcher.ConfigurePolicy(cfg); err != nil {
 		return err
 	}
+	c.governor = gov
 	c.configured = true
 	return nil
 }
@@ -243,6 +258,9 @@ func (c *Client) Get(ctx context.Context, rawURL string) (*goquery.Document, str
 			return nil, "", provider.ErrIncompleteMetadata
 		}
 		if isChallengePage(body) {
+			// Verification pages can be HTTP 200; they must still engage
+			// the same shared cooldown as an explicit access denial.
+			c.governor.ObserveResponse(http.StatusForbidden, nil)
 			return nil, "", provider.ErrChallengeRequired
 		}
 		doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
