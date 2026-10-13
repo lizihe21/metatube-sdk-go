@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/metatube-community/metatube-sdk-go/common/fetch"
 	mt "github.com/metatube-community/metatube-sdk-go/provider"
@@ -99,9 +101,11 @@ func (e *Engine) applyProviderConfig(providerType string, provider mt.Provider, 
 	if s, ok := provider.(mt.ProxySetter); ok && config.Has(proxyConfigKey) {
 		if v, err := config.GetString(proxyConfigKey); err == nil {
 			if err := s.SetProxy(v); err != nil {
-				e.logger.Fatalf("Set proxy for %s provider '%s' error: %v", providerType, provider.Name(), v)
+				e.logger.Printf("Set proxy for %s provider %s failed: %v", providerType, provider.Name(), err)
+				provider.SetPriority(0)
+				return
 			}
-			e.logger.Printf("Override %s provider proxy: %s=%s", providerType, provider.Name(), v)
+			e.logger.Printf("Override %s provider proxy: %s (credentials redacted)", providerType, provider.Name())
 		}
 	}
 
@@ -113,10 +117,86 @@ func (e *Engine) applyProviderConfig(providerType string, provider mt.Provider, 
 		}
 	}
 
+	// Opt-in policy configuration, applied after proxy/timeout so the
+	// transport wrapper remains the final outbound HTTP gate.
+	if hasRequestPolicyConfig(config) {
+		setter, ok := provider.(mt.RequestPolicySetter)
+		if !ok {
+			e.logger.Printf("Disable %s provider %s: request policy unsupported", providerType, provider.Name())
+			provider.SetPriority(0)
+			return
+		}
+		policy, err := readRequestPolicyConfig(config)
+		if err == nil {
+			err = setter.SetRequestPolicy(policy)
+		}
+		if err != nil {
+			e.logger.Printf("Disable %s provider %s: invalid request policy: %v", providerType, provider.Name(), err)
+			provider.SetPriority(0)
+			return
+		}
+	}
+
 	// Apply full config.
 	if s, ok := provider.(mt.ConfigSetter); ok {
 		if err := s.SetConfig(config); err != nil {
-			e.logger.Fatalf("Set %s provider config for %s: %v", providerType, provider.Name(), err)
+			e.logger.Printf("Disable %s provider %s: invalid provider config: %v", providerType, provider.Name(), err)
+			provider.SetPriority(0)
+			return
 		}
 	}
+}
+
+var requestPolicyKeys = []string{
+	"min_interval", "jitter", "max_concurrency", "max_wait",
+	"rate_limit_cooldown", "forbidden_cooldown", "max_attempts",
+}
+
+func hasRequestPolicyConfig(c mt.Config) bool {
+	for _, key := range requestPolicyKeys {
+		if c.Has(key) {
+			return true
+		}
+	}
+	return false
+}
+
+func readRequestPolicyConfig(c mt.Config) (mt.RequestPolicyConfig, error) {
+	var result mt.RequestPolicyConfig
+	for _, field := range []struct {
+		name   string
+		target *time.Duration
+	}{
+		{"min_interval", &result.MinInterval},
+		{"jitter", &result.Jitter},
+		{"max_wait", &result.MaxWait},
+		{"rate_limit_cooldown", &result.RateLimitCooldown},
+		{"forbidden_cooldown", &result.ForbiddenCooldown},
+	} {
+		if !c.Has(field.name) {
+			continue
+		}
+		value, err := c.GetDuration(field.name)
+		if err != nil {
+			return result, fmt.Errorf("%s: %w", field.name, err)
+		}
+		*field.target = value
+	}
+	for _, field := range []struct {
+		name   string
+		target *int
+	}{
+		{"max_concurrency", &result.MaxConcurrency},
+		{"max_attempts", &result.MaxAttempts},
+	} {
+		if !c.Has(field.name) {
+			continue
+		}
+		value, err := c.GetInt64(field.name)
+		if err != nil || value < 0 || value > 100000 {
+			return result, fmt.Errorf("%s: invalid integer value", field.name)
+		}
+		*field.target = int(value)
+	}
+	return result, nil
 }

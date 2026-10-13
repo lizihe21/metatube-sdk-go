@@ -110,3 +110,22 @@ type ConfigSetter interface {
 	// SetConfig sets any additional configs for Provider.
 	SetConfig(config Config) error
 }
+
+// RequestPolicyConfig configures opt-in per-site HTTP request governance.
+// Scope defaults to the provider hostname; the same scope shares one budget
+// across collectors, fetchers and independent instances in this process.
+type RequestPolicyConfig struct {
+	Scope             string
+	MinInterval       time.Duration
+	Jitter            time.Duration
+	MaxConcurrency    int
+	MaxWait           time.Duration
+	RateLimitCooldown time.Duration
+	ForbiddenCooldown time.Duration
+	MaxAttempts       int
+}
+
+// RequestPolicySetter is optional and does not change existing Provider interfaces.
+type RequestPolicySetter interface {
+	SetRequestPolicy(RequestPolicyConfig) error
+}

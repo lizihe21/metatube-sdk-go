@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/metatube-community/metatube-sdk-go/docker.yml?branch=main&style=flat-square&logo=github-actions)](https://github.com/metatube-community/metatube-sdk-go/actions/workflows/release.yml)
 [![Go Linter](https://img.shields.io/github/actions/workflow/status/metatube-community/metatube-sdk-go/linter.yml?style=flat-square&branch=main&logo=githubactions&label=golangci-lint)](https://github.com/metatube-community/metatube-sdk-go/actions/workflows/linter.yml)
-[![Require Go Version](https://img.shields.io/badge/go-%3E%3D1.25-30dff3?style=flat-square&logo=go)](https://github.com/metatube-community/metatube-sdk-go/blob/main/go.mod)
+[![Require Go Version](https://img.shields.io/badge/go-%3E%3D1.26-30dff3?style=flat-square&logo=go)](https://github.com/metatube-community/metatube-sdk-go/blob/main/go.mod)
 [![GitHub License](https://img.shields.io/github/license/metatube-community/metatube-sdk-go?color=e4682a&logo=apache&style=flat-square)](https://github.com/metatube-community/metatube-sdk-go/blob/main/LICENSE)
 [![Tag](https://img.shields.io/github/v/tag/metatube-community/metatube-sdk-go?color=%23ff8936&logo=fitbit&style=flat-square)](https://github.com/metatube-community/metatube-sdk-go/tags)
 
@@ -38,12 +38,36 @@ Metadata Tube SDK in Golang.
 
 ## Installation
 
-To install this package, you first need [Go](https://golang.org/) installed (**go1.25+ is required**), then you can use
+To install this package, you first need [Go](https://golang.org/) installed (**Go 1.26+ is required**), then you can use
 the below Go command to install SDK.
 
 ```sh
 go get -u github.com/metatube-community/metatube-sdk-go
 ```
+
+## New provider and translation capabilities (development branch)
+
+This branch introduces JavLibrary and JavDB movie providers with a
+shared request budget, an optional connector to an **existing**
+FlareSolverr Docker HTTP API, and enhanced OpenAI-compatible translation
+(Chat Completions / Responses, JSON / streamed SSE). Features remain
+unmerged until the draft PR is reviewed and verified.
+
+- [JavLibrary / JavDB configuration and FlareSolverr API](docs/providers-javlibrary-javdb.md)
+- [OpenAI translation protocol and options](docs/openai-translation.md)
+- [Offline vs. real-network testing, skip gates and release checklist](docs/test-matrix.md)
+
+Offline tests run without external accounts, websites, or Docker:
+
+```sh
+make test
+make test-vet
+make test-race
+```
+
+All real-site and external API checks are deliberately **opt-in**.
+See the test matrix for the required variables and per-provider commands.
+A skipped live check means **not verified**, not a successful test.
 
 ## Credits
 

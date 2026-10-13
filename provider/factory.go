@@ -42,20 +42,32 @@ func Register[T Provider](name string, factory func() T) {
 
 func RangeMovieFactory(f func(string, MovieFactory) bool) {
 	factoryMu.RLock()
+	factories := make(map[string]MovieFactory, len(movieFactories))
 	for name, factory := range movieFactories {
+		factories[name] = factory
+	}
+	factoryMu.RUnlock()
+
+	// Invoke external callbacks after releasing the registry lock.
+	for name, factory := range factories {
 		if !f(name, factory) {
 			return
 		}
 	}
-	factoryMu.RUnlock()
 }
 
 func RangeActorFactory(f func(string, ActorFactory) bool) {
 	factoryMu.RLock()
+	factories := make(map[string]ActorFactory, len(actorFactories))
 	for name, factory := range actorFactories {
+		factories[name] = factory
+	}
+	factoryMu.RUnlock()
+
+	// Invoke external callbacks after releasing the registry lock.
+	for name, factory := range factories {
 		if !f(name, factory) {
 			return
 		}
 	}
-	factoryMu.RUnlock()
 }

@@ -3,6 +3,7 @@ package graphql
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,9 @@ func TestBuildQueryOptions(t *testing.T) {
 }
 
 func TestClient_GetContentPageData(t *testing.T) {
+	if os.Getenv("METATUBE_LIVE_TEST") != "1" {
+		t.Skip("real-network integration test skipped; set METATUBE_LIVE_TEST=1")
+	}
 	client := NewClient(WithHTTPClient(http.DefaultClient))
 	client.gc.Log = func(s string) { t.Log(s) }
 
@@ -41,6 +45,9 @@ func TestClient_GetContentPageData(t *testing.T) {
 }
 
 func TestClient_GetContentPageData_Error(t *testing.T) {
+	if os.Getenv("METATUBE_LIVE_TEST") != "1" {
+		t.Skip("real-network integration test skipped; set METATUBE_LIVE_TEST=1")
+	}
 	client := NewClient(WithHTTPClient(http.DefaultClient))
 	client.gc.Log = func(s string) { t.Log(s) }
 
@@ -49,6 +56,9 @@ func TestClient_GetContentPageData_Error(t *testing.T) {
 }
 
 func TestClient_GetUserReviews(t *testing.T) {
+	if os.Getenv("METATUBE_LIVE_TEST") != "1" {
+		t.Skip("real-network integration test skipped; set METATUBE_LIVE_TEST=1")
+	}
 	client := NewClient(WithHTTPClient(http.DefaultClient))
 	client.gc.Log = func(s string) { t.Log(s) }
 
@@ -61,6 +71,9 @@ func TestClient_GetUserReviews(t *testing.T) {
 }
 
 func TestClient_GetUserReviews_Error(t *testing.T) {
+	if os.Getenv("METATUBE_LIVE_TEST") != "1" {
+		t.Skip("real-network integration test skipped; set METATUBE_LIVE_TEST=1")
+	}
 	client := NewClient(WithHTTPClient(http.DefaultClient))
 	client.gc.Log = func(s string) { t.Log(s) }
 

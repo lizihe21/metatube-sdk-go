@@ -9,6 +9,12 @@ import (
 )
 
 func TestOpenaiTranslate(t *testing.T) {
+	if os.Getenv("OPENAI_TRANSLATION_INTEGRATION") != "1" {
+		t.Skip("live translation integration test requires OPENAI_TRANSLATION_INTEGRATION=1")
+	}
+	if os.Getenv("OPENAI_API_KEY") == "" {
+		t.Skip("live translation integration test requires OPENAI_API_KEY")
+	}
 	for _, unit := range []struct {
 		text, from, to string
 	}{

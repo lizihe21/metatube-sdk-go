@@ -4,6 +4,7 @@ import (
 	goerr "errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -44,8 +45,6 @@ func New(app *engine.Engine, v auth.Validator) *gin.Engine {
 		// a long time, especially behind a CDN.
 		cachePublicSMaxAge(180*24*time.Hour))
 	{
-		public.GET("/translate", getTranslate())
-
 		images := public.Group("/images")
 		{
 			images.GET("/primary/:provider/:id", getImage(app, primaryImageType))
@@ -56,6 +55,9 @@ func New(app *engine.Engine, v auth.Validator) *gin.Engine {
 
 	private := r.Group("/v1", authentication(v))
 	{
+		// Translation can contain credentials and user-provided text; never use shared cache.
+		private.GET("/translate", cacheNoStore(), getTranslate()) // legacy query API
+		private.POST("/translate", cacheNoStore(), postTranslate())
 		db := private.Group("/db")
 		{
 			db.GET("/version", getDBVersion(app))
@@ -83,7 +85,18 @@ func New(app *engine.Engine, v auth.Validator) *gin.Engine {
 }
 
 func logger() gin.HandlerFunc {
-	return gin.LoggerWithConfig(gin.LoggerConfig{})
+	// Never log query parameters: the legacy translation endpoint may receive API keys.
+	return gin.LoggerWithConfig(gin.LoggerConfig{
+		Formatter: func(p gin.LogFormatterParams) string {
+			path := p.Path
+			if i := strings.IndexByte(path, '?'); i >= 0 {
+				path = path[:i]
+			}
+			return fmt.Sprintf("[GIN] %s | %3d | %13v | %15s | %-7s %s | %s\n",
+				p.TimeStamp.Format("2006/01/02 - 15:04:05"),
+				p.StatusCode, p.Latency, p.ClientIP, p.Method, path, p.ErrorMessage)
+		},
+	})
 }
 
 func recovery() gin.HandlerFunc {

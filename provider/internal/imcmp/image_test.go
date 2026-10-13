@@ -1,12 +1,16 @@
 package imcmp
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSimilar(t *testing.T) {
+	if os.Getenv("METATUBE_LIVE_TEST") != "1" {
+		t.Skip("real-network integration test skipped; set METATUBE_LIVE_TEST=1")
+	}
 	for _, item := range []struct {
 		imgUrl1, imgUrl2 string
 		similar          bool
