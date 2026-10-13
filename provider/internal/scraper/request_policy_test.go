@@ -24,7 +24,7 @@ func TestPolicyAppliesAcrossClonedCollectors(t *testing.T) {
 	}))
 	defer server.Close()
 
-	s := NewScraper("fixture-site", server.URL, 1, language.English)
+	s := NewScraper("fixture-site", server.URL, 1, language.English, WithAllowURLRevisit())
 	if err := s.SetRequestPolicy(provider.RequestPolicyConfig{
 		Scope: "scraper-clones-" + t.Name(),
 		MaxConcurrency: 1,
