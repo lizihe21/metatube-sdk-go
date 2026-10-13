@@ -112,3 +112,27 @@ func TestGetCanceledBeforeRequest(t *testing.T) {
 		t.Fatalf("canceled request sent %d times", called.Load())
 	}
 }
+
+func TestChallengeStartsSharedCooldown(t *testing.T) {
+	var hits atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		_, _ = w.Write([]byte("<html><title>Just a moment</title></html>"))
+	}))
+	defer server.Close()
+	client := New("Fixture", server.URL, 1, language.English, provider.RequestPolicyConfig{
+		MaxConcurrency: 1,
+		ForbiddenCooldown: 250 * time.Millisecond,
+		MaxWait: 30 * time.Millisecond,
+	})
+	if _, _, err := client.Get(context.Background(), server.URL+"/first"); !errors.Is(err, provider.ErrChallengeRequired) {
+		t.Fatalf("expected verification error, got %v", err)
+	}
+	_, _, err := client.Get(context.Background(), server.URL+"/second")
+	if err == nil {
+		t.Fatal("challenge did not engage cooldown")
+	}
+	if hits.Load() != 1 {
+		t.Fatalf("unexpected requests during cooldown: %d", hits.Load())
+	}
+}
