@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -47,9 +48,9 @@ func TestPolicyAppliesAcrossClonedCollectors(t *testing.T) {
 }
 
 func TestPolicySurvivesProxyOverride(t *testing.T) {
-	var forwarded int
+	var forwarded atomic.Int32
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		forwarded++
+		forwarded.Add(1)
 		_, _ = w.Write([]byte("<html>proxied</html>"))
 	}))
 	defer proxy.Close()
@@ -61,5 +62,5 @@ func TestPolicySurvivesProxyOverride(t *testing.T) {
 	}); err != nil { t.Fatal(err) }
 	if err := s.SetProxy(proxy.URL); err != nil { t.Fatal(err) }
 	if err := s.ClonedCollector().Visit("http://example.invalid/entry"); err != nil { t.Fatal(err) }
-	if forwarded != 1 { t.Fatalf("expected proxied request, got %d", forwarded) }
+	if forwarded.Load() != 1 { t.Fatalf("expected proxied request, got %d", forwarded.Load()) }
 }
