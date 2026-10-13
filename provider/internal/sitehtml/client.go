@@ -294,7 +294,11 @@ func (c *Client) getWithSolver(ctx context.Context, target string) (*goquery.Doc
 	// A direct 403 may have imposed a five-minute cooldown on the original
 	// governor. During that interval use the separate, rate-limited API path.
 	if time.Now().After(c.preferSolverUntil) {
-		c.preferSolverUntil = time.Now().Add(5 * time.Minute)
+		cooldown := c.policyConfig.ForbiddenCooldown
+		if cooldown < 30*time.Second {
+			cooldown = 30 * time.Second
+		}
+		c.preferSolverUntil = time.Now().Add(cooldown)
 	}
 	c.mu.Unlock()
 	return doc, result.URL, nil
