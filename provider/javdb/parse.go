@@ -210,12 +210,13 @@ func parseDetail(doc *goquery.Document, pageURL, opaqueID string) (*model.MovieI
 	doc.Find(".movie-panel-info .panel-block").Each(func(_ int, block *goquery.Selection) {
 		label := labelKey(block.Find("strong").First().Text())
 		valueNode := block.Find(".value").First()
-		if valueNode.Length() == 0 {
+		fallbackToBlock := valueNode.Length() == 0
+		if fallbackToBlock {
 			// Some templates place the value directly after <strong>.
 			valueNode = block
 		}
 		valueText := clean(valueNode.Text())
-		if valueNode.Is(block) {
+		if fallbackToBlock {
 			valueText = clean(strings.TrimPrefix(valueText, block.Find("strong").First().Text()))
 		}
 		switch {
