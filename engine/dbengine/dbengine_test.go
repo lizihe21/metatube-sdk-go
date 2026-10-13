@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"os"
 	"slices"
 	"sort"
 	"strings"
@@ -65,6 +66,9 @@ func TestDBEngineTestSuite(t *testing.T) {
 
 	for _, s := range suites {
 		t.Run(s.typ, func(t *testing.T) {
+			if s.typ == database.Postgres && os.Getenv("METATUBE_DOCKER_TEST") != "1" {
+				t.Skip("PostgreSQL Docker integration skipped; set METATUBE_DOCKER_TEST=1")
+			}
 			suite.Run(t, &DBEngineTestSuite{typ: s.typ, dsn: s.dsn})
 		})
 	}
@@ -333,6 +337,12 @@ func jsonify(v interface{}) string {
 }
 
 func TestMain(m *testing.M) {
+	// The SQLite suite remains offline. Starting Docker requires explicit
+	// integration opt-in, rather than running for every go test invocation.
+	if os.Getenv("METATUBE_DOCKER_TEST") != "1" {
+		os.Exit(m.Run())
+	}
+
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		log.Fatalf("Could not construct pool: %s", err)
@@ -379,13 +389,16 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Could not connect to database: %s", err)
 	}
 
-	defer func() {
-		if err := pool.Purge(resource); err != nil {
-			log.Fatalf("Could not purge resource: %s", err)
+	exitCode := m.Run()
+	if err := pool.Purge(resource); err != nil {
+		log.Printf("Could not purge resource: %s", err)
+		if exitCode == 0 {
+			exitCode = 1
 		}
-	}()
-
-	m.Run()
+	}
+	// m.Run's failure code must be propagated; calling m.Run() without
+	// os.Exit() can incorrectly mark failing tests as successful.
+	os.Exit(exitCode)
 }
 
 var postgresDSN string
