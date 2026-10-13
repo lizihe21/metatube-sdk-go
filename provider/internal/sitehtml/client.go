@@ -91,13 +91,13 @@ func (c *Client) applyPolicyLocked(cfg provider.RequestPolicyConfig) error {
 		cfg.MaxAttempts = c.defaults.MaxAttempts
 	}
 	gov, err := requestpolicy.Shared(cfg.Scope, requestpolicy.Config{
-		MinInterval: cfg.MinInterval,
-		Jitter: cfg.Jitter,
-		MaxConcurrency: cfg.MaxConcurrency,
-		MaxWait: cfg.MaxWait,
+		MinInterval:       cfg.MinInterval,
+		Jitter:            cfg.Jitter,
+		MaxConcurrency:    cfg.MaxConcurrency,
+		MaxWait:           cfg.MaxWait,
 		RateLimitCooldown: cfg.RateLimitCooldown,
 		ForbiddenCooldown: cfg.ForbiddenCooldown,
-		MaxAttempts: cfg.MaxAttempts,
+		MaxAttempts:       cfg.MaxAttempts,
 	})
 	if err != nil {
 		return err
@@ -193,7 +193,7 @@ func (c *Client) SetConfig(config provider.Config) error {
 	// Browser requests use an independent site-scoped queue because an
 	// HTTP 403 from the direct path has already put its transport in cooldown.
 	// The two paths cannot share that cooldown without blocking the fallback.
-	solverGovernor, err := requestpolicy.Shared("flaresolverr:"+c.Scraper.URL().Host,
+	solverGovernor, err := requestpolicy.Shared("flaresolverr:"+c.URL().Host,
 		requestpolicy.Config{
 			MinInterval:    c.policyConfig.MinInterval,
 			Jitter:         c.policyConfig.Jitter,
@@ -261,7 +261,7 @@ func (c *Client) getWithSolver(ctx context.Context, target string) (*goquery.Doc
 	}
 	// Browser clearance cookies and User-Agent are a matching pair. Save only
 	// cookies scoped to this source host; never import unrelated domains.
-	hostname := c.Scraper.URL().Hostname()
+	hostname := c.URL().Hostname()
 	httpCookies := make([]*http.Cookie, 0, len(result.Cookies))
 	for _, cookie := range result.Cookies {
 		if cookie.Name == "" {
@@ -329,7 +329,7 @@ func (c *Client) ValidURL(rawURL string) bool {
 	if err != nil || u.User != nil {
 		return false
 	}
-	base := c.Scraper.URL()
+	base := c.URL()
 	return u.IsAbs() && u.Scheme == base.Scheme &&
 		strings.EqualFold(u.Host, base.Host) &&
 		(u.Scheme == "http" || u.Scheme == "https")

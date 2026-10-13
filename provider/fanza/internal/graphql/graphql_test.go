@@ -1,9 +1,9 @@
 package graphql
 
 import (
-	"os"
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

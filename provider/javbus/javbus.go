@@ -223,19 +223,19 @@ func (bus *JavBus) SetRequestPolicy(cfg provider.RequestPolicyConfig) error {
 	if err := bus.Scraper.SetRequestPolicy(cfg); err != nil {
 		return err
 	}
-	return bus.Fetcher.ConfigurePolicy(cfg)
+	return bus.ConfigurePolicy(cfg)
 }
 
 func (bus *JavBus) SetProxy(proxyURL string) error {
 	if err := bus.Scraper.SetProxy(proxyURL); err != nil {
 		return err
 	}
-	return bus.Fetcher.ConfigureProxy(proxyURL)
+	return bus.ConfigureProxy(proxyURL)
 }
 
 func (bus *JavBus) SetRequestTimeout(timeout time.Duration) {
 	bus.Scraper.SetRequestTimeout(timeout)
-	bus.Fetcher.ConfigureTimeout(timeout)
+	bus.ConfigureTimeout(timeout)
 }
 
 func init() {
