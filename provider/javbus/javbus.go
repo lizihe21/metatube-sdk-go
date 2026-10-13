@@ -217,13 +217,19 @@ func (bus *JavBus) SearchMovie(keyword string) (results []*model.MovieSearchResu
 
 // Apply the same request budget to metadata (Colly) and media (Fetcher).
 func (bus *JavBus) SetRequestPolicy(cfg provider.RequestPolicyConfig) error {
-	if cfg.Scope == "" { cfg.Scope = bus.URL().Hostname() }
-	if err := bus.Scraper.SetRequestPolicy(cfg); err != nil { return err }
+	if cfg.Scope == "" {
+		cfg.Scope = bus.URL().Hostname()
+	}
+	if err := bus.Scraper.SetRequestPolicy(cfg); err != nil {
+		return err
+	}
 	return bus.Fetcher.ConfigurePolicy(cfg)
 }
 
 func (bus *JavBus) SetProxy(proxyURL string) error {
-	if err := bus.Scraper.SetProxy(proxyURL); err != nil { return err }
+	if err := bus.Scraper.SetProxy(proxyURL); err != nil {
+		return err
+	}
 	return bus.Fetcher.ConfigureProxy(proxyURL)
 }
 
