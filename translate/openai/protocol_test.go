@@ -355,3 +355,30 @@ func TestIncorrectEventStreamMIMEWithJSONBody(t *testing.T) {
 		t.Fatalf("JSON body rejected because of incorrect header: %q %v", got, err)
 	}
 }
+
+func TestResponsesSnapshotOutputSkeletonDoesNotDiscardDeltas(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		io.WriteString(w, "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"hi\"}\n\n")
+		io.WriteString(w, "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"content\":[]}]}}\n\n")
+	}))
+	defer server.Close()
+	o := &OpenAI{APIUrl: server.URL, Model: "test", APIMode: "responses", Stream: true}
+	got, err := o.Translate("hi", "en", "fr")
+	if err != nil || got != "hi" {
+		t.Fatalf("skeleton snapshot lost text: %q %v", got, err)
+	}
+}
+
+func TestLegacyCompletionSSETextDelta(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		io.WriteString(w, "data: {\"choices\":[{\"index\":0,\"text\":\"legacy\",\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")
+	}))
+	defer server.Close()
+	o := &OpenAI{APIUrl: server.URL, Model: "model", Stream: true}
+	got, err := o.Translate("hi", "en", "de")
+	if err != nil || got != "legacy" {
+		t.Fatalf("legacy SSE text unsupported: %q %v", got, err)
+	}
+}

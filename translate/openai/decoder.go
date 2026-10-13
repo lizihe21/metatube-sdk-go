@@ -242,17 +242,21 @@ func decodeSSE(reader io.Reader, mode string) (string, error) {
 					if len(snapshot.Error) > 0 && string(snapshot.Error) != "null" {
 						return ErrUpstream
 					}
-					// A completed snapshot can contain a refusal even if earlier
-					// deltas contained text. Check final content, but do not
-					// duplicate the snapshot after already receiving deltas.
-					if len(snapshot.Output) > 0 || snapshot.OutputText != "" {
+					// Even when text deltas exist, final content can contain
+					// a refusal. Reject it without duplicating the snapshot.
+					for _, item := range snapshot.Output {
+						for _, part := range item.Content {
+							if part.Type == "refusal" || part.Refusal != "" {
+								return ErrRefusal
+							}
+						}
+					}
+					if out.Len() == 0 && (len(snapshot.Output) > 0 || snapshot.OutputText != "") {
 						full, err := decodeResponsesJSON(event.Response)
 						if err != nil {
 							return err
 						}
-						if out.Len() == 0 {
-							out.WriteString(full)
-						}
+						out.WriteString(full)
 					}
 				}
 			}
@@ -278,6 +282,9 @@ func decodeSSE(reader io.Reader, mode string) (string, error) {
 			delta, err := readMessageContent(choice.Delta.Content)
 			if err != nil {
 				return err
+			}
+			if delta == "" {
+				delta = choice.Text // legacy completion-compatible streaming gateways
 			}
 			out.WriteString(delta)
 		}
