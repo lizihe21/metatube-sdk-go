@@ -1,0 +1,50 @@
+name: One-shot gofumpt formatter
+
+on:
+  push:
+    branches:
+      - feat/provider-translation-hardening-20261013
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.ref == 'refs/heads/feat/provider-translation-hardening-20261013' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v7
+        with:
+          ref: feat/provider-translation-hardening-20261013
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install gofumpt
+        run: go install mvdan.cc/gofumpt@latest
+
+      - name: Format PR-modified Go files
+        shell: bash
+        run: |
+          git fetch origin main
+          git diff --name-only -z origin/main...HEAD -- '*.go' | xargs -0 -r "$(go env GOPATH)/bin/gofumpt" -w
+          git diff --check
+
+      - name: Commit canonical formatting
+        shell: bash
+        run: |
+          if ! git diff --quiet -- '*.go'; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -u -- '*.go'
+            git commit -m 'style: apply gofumpt to Go files changed in PR #1'
+            git push origin HEAD:feat/provider-translation-hardening-20261013
+          else
+            echo 'All changed Go files are gofumpt-clean'
+          fi
