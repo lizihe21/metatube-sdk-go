@@ -127,7 +127,9 @@ func (e *Engine) applyProviderConfig(providerType string, provider mt.Provider, 
 			return
 		}
 		policy, err := readRequestPolicyConfig(config)
-		if err == nil { err = setter.SetRequestPolicy(policy) }
+		if err == nil {
+			err = setter.SetRequestPolicy(policy)
+		}
 		if err != nil {
 			e.logger.Printf("Disable %s provider %s: invalid request policy: %v", providerType, provider.Name(), err)
 			provider.SetPriority(0)
@@ -152,15 +154,17 @@ var requestPolicyKeys = []string{
 
 func hasRequestPolicyConfig(c mt.Config) bool {
 	for _, key := range requestPolicyKeys {
-		if c.Has(key) { return true }
+		if c.Has(key) {
+			return true
+		}
 	}
 	return false
 }
 
 func readRequestPolicyConfig(c mt.Config) (mt.RequestPolicyConfig, error) {
 	var result mt.RequestPolicyConfig
-	for _, field := range []struct{
-		name string
+	for _, field := range []struct {
+		name   string
 		target *time.Duration
 	}{
 		{"min_interval", &result.MinInterval},
@@ -169,24 +173,30 @@ func readRequestPolicyConfig(c mt.Config) (mt.RequestPolicyConfig, error) {
 		{"rate_limit_cooldown", &result.RateLimitCooldown},
 		{"forbidden_cooldown", &result.ForbiddenCooldown},
 	} {
-		if !c.Has(field.name) {continue}
-		value,err:=c.GetDuration(field.name)
-		if err!=nil {return result,fmt.Errorf("%s: %w",field.name,err)}
-		*field.target=value
+		if !c.Has(field.name) {
+			continue
+		}
+		value, err := c.GetDuration(field.name)
+		if err != nil {
+			return result, fmt.Errorf("%s: %w", field.name, err)
+		}
+		*field.target = value
 	}
-	for _,field:=range []struct{
-		name string
+	for _, field := range []struct {
+		name   string
 		target *int
 	}{
-		{"max_concurrency",&result.MaxConcurrency},
-		{"max_attempts",&result.MaxAttempts},
+		{"max_concurrency", &result.MaxConcurrency},
+		{"max_attempts", &result.MaxAttempts},
 	} {
-		if !c.Has(field.name) {continue}
-		value,err:=c.GetInt64(field.name)
-		if err!=nil || value<0 || value>100000 {
-			return result,fmt.Errorf("%s: invalid integer value",field.name)
+		if !c.Has(field.name) {
+			continue
 		}
-		*field.target=int(value)
+		value, err := c.GetInt64(field.name)
+		if err != nil || value < 0 || value > 100000 {
+			return result, fmt.Errorf("%s: invalid integer value", field.name)
+		}
+		*field.target = int(value)
 	}
-	return result,nil
+	return result, nil
 }
