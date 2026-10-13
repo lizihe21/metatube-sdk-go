@@ -121,9 +121,9 @@ func TestChallengeStartsSharedCooldown(t *testing.T) {
 	}))
 	defer server.Close()
 	client := New("Fixture", server.URL, 1, language.English, provider.RequestPolicyConfig{
-		MaxConcurrency: 1,
+		MaxConcurrency:    1,
 		ForbiddenCooldown: 250 * time.Millisecond,
-		MaxWait: 30 * time.Millisecond,
+		MaxWait:           30 * time.Millisecond,
 	})
 	if _, _, err := client.Get(context.Background(), server.URL+"/first"); !errors.Is(err, provider.ErrChallengeRequired) {
 		t.Fatalf("expected verification error, got %v", err)

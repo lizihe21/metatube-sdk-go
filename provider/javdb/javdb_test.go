@@ -21,16 +21,21 @@ func fixtureClient(base string) *JavDB {
 	return &JavDB{Client: sitehtml.New(Name, base, Priority, language.Chinese,
 		provider.RequestPolicyConfig{MaxConcurrency: 1, MaxAttempts: 1, MaxWait: time.Second})}
 }
+
 func readDoc(t *testing.T, raw string) *goquery.Document {
 	t.Helper()
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(raw))
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	return doc
 }
 
 func TestSearchResultPreservesOpaqueID(t *testing.T) {
 	items, err := parseSearch(readDoc(t, searchHTML), "https://javdb.com/search?q=SSIS-001")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(items) != 2 || items[0].ID != "AbC9" || items[0].Number != "SSIS-001" ||
 		items[0].Homepage != "https://javdb.com/v/AbC9" || items[1].ID != "xYz89" {
 		t.Fatalf("invalid search entries: %+v", items)
@@ -39,7 +44,9 @@ func TestSearchResultPreservesOpaqueID(t *testing.T) {
 
 func TestDetailParsesFieldsAndFiltersMaleOnlyActors(t *testing.T) {
 	info, err := parseDetail(readDoc(t, detailHTML), "https://javdb.com/v/AbC9", "AbC9")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	if info.ID != "AbC9" || info.Number != "SSIS-001" || info.Title != "Fixture title A" ||
 		info.Maker != "Maker B" || info.Label != "Label B" || info.Runtime != 120 {
 		t.Fatalf("metadata incorrect: %+v", info)
@@ -53,9 +60,15 @@ func TestDetailParsesFieldsAndFiltersMaleOnlyActors(t *testing.T) {
 func TestURLParseRejectsForeignAndMalformed(t *testing.T) {
 	p := New()
 	id, err := p.ParseMovieIDFromURL("https://javdb.com/v/xYz89")
-	if err != nil || id != "xYz89" { t.Fatalf("roundtrip id=%q err=%v", id, err) }
-	for _, raw := range []string{"https://evil.test/v/xYz89", "https://javdb.com/search?q=SSIS-001",
-		"https://javdb.com/v/", "https://javdb.com/v/../../admin"} {
+	if err != nil || id != "xYz89" {
+		t.Fatalf("roundtrip id=%q err=%v", id, err)
+	}
+	for _, raw := range []string{
+		"https://evil.test/v/xYz89",
+		"https://javdb.com/search?q=SSIS-001",
+		"https://javdb.com/v/",
+		"https://javdb.com/v/../../admin",
+	} {
 		if _, err := p.ParseMovieIDFromURL(raw); !errors.Is(err, provider.ErrInvalidURL) {
 			t.Fatalf("accepted %q: %v", raw, err)
 		}
@@ -73,15 +86,20 @@ func TestNumberLookupSelectsExactResult(t *testing.T) {
 		_, _ = w.Write([]byte(detailHTML))
 	}))
 	defer server.Close()
+
 	info, err := fixtureClient(server.URL).GetMovieInfoByIDContext(context.Background(), "SSIS-001")
-	if err != nil { t.Fatal(err) }
-	if info.ID != "AbC9" || searches.Load() != 1 { t.Fatalf("wrong lookup %+v searches=%d", info, searches.Load()) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.ID != "AbC9" || searches.Load() != 1 {
+		t.Fatalf("wrong lookup %+v searches=%d", info, searches.Load())
+	}
 }
 
 func TestSearchBlockedAndUnknownPages(t *testing.T) {
 	for _, tc := range []struct {
 		name, content string
-		want error
+		want          error
 	}{
 		{"challenge", "<html><title>Just a moment</title></html>", provider.ErrChallengeRequired},
 		{"unknown", "<html><body>unexpected structure</body></html>", provider.ErrIncompleteMetadata},
@@ -92,7 +110,9 @@ func TestSearchBlockedAndUnknownPages(t *testing.T) {
 			}))
 			defer server.Close()
 			_, err := fixtureClient(server.URL).SearchMovie("SSIS-001")
-			if !errors.Is(err, tc.want) { t.Fatalf("want %v got %v", tc.want, err) }
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("want %v got %v", tc.want, err)
+			}
 		})
 	}
 }
@@ -106,6 +126,7 @@ func TestSearchHandlesSameOriginDetailRedirect(t *testing.T) {
 		_, _ = w.Write([]byte(detailHTML))
 	}))
 	defer server.Close()
+
 	items, err := fixtureClient(server.URL).SearchMovie("SSIS-001")
 	if err != nil || len(items) != 1 || items[0].ID != "AbC9" {
 		t.Fatalf("unexpected redirect results: %v %+v", err, items)
